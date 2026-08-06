@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  NotFoundException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { UsersService } from '../users/users.service';
@@ -14,8 +18,9 @@ export class AuthService {
 
   async validateUser(email: string, password: string): Promise<any> {
     const user = await this.usersService.findByEmail(email);
-    if (user && (await bcrypt.compare(password, user.password))) {
-      const { password, ...result } = user.toObject();
+    if (user && user.password && (await bcrypt.compare(password, user.password))) {
+      const userObj = user.toObject ? user.toObject() : user;
+      const { password: userPassword, pin, ...result } = userObj;
       return result;
     }
     return null;
@@ -43,8 +48,17 @@ export class AuthService {
   }
 
   async register(registerDto: RegisterDto) {
-    const user = await this.usersService.create(registerDto as any);
-    const { password, ...result } = user.toObject();
+    const userDoc = await this.usersService.create(registerDto as any);
+    const userObj = userDoc.toObject ? userDoc.toObject() : userDoc;
+    const { password, pin, ...result } = userObj;
+    return result;
+  }
+
+  async getProfile(userId: string) {
+    const userDoc = await this.usersService.findOne(userId);
+    const userObj = userDoc.toObject ? userDoc.toObject() : userDoc;
+    const { password, pin, ...result } = userObj;
     return result;
   }
 }
+

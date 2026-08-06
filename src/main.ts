@@ -1,14 +1,23 @@
 import { NestFactory } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
-
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Enable global validation pipe for DTO validation
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      forbidNonWhitelisted: false,
+    }),
+  );
+
   const config = new DocumentBuilder()
-    .setTitle('Resturant SASS API')
-    .setDescription('API description')
+    .setTitle('Restaurant SaaS API')
+    .setDescription('REST API Documentation for Restaurant SaaS Platform')
     .setVersion('1.0')
     .addBearerAuth(
       {
@@ -24,10 +33,12 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-
-  // 👇 IMPORTANT LINE
   SwaggerModule.setup('api', app, document);
 
-  await app.listen(3000);
+  const port = process.env.PORT || 3000;
+  await app.listen(port);
+  console.log(`Server is running on http://localhost:${port}`);
+  console.log(`Swagger documentation is available at http://localhost:${port}/api`);
 }
 bootstrap();
+
