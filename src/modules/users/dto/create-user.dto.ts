@@ -23,7 +23,7 @@ export class CreateUserDto {
   @IsOptional()
   role?: UserRole;
 
-  @IsMongoId()
+  @IsString()
   @IsOptional()
   businessId?: string;
 

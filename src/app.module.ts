@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { MongooseModule } from '@nestjs/mongoose';
+import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import configuration from './config/configuration';
+import { PrismaModule } from './prisma/prisma.module';
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
@@ -15,13 +15,7 @@ import { BusinessesModule } from './modules/businesses/businesses.module';
       load: [configuration],
       isGlobal: true,
     }),
-    MongooseModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        uri: configService.get<string>('database.mongoUri'),
-      }),
-      inject: [ConfigService],
-    }),
+    PrismaModule,
     DatabaseModule,
     AuthModule,
     UsersModule,
@@ -31,6 +25,7 @@ import { BusinessesModule } from './modules/businesses/businesses.module';
   providers: [AppService],
 })
 export class AppModule {}
+
 
 // import { Module } from '@nestjs/common';
 // import { AppController } from './app.controller';

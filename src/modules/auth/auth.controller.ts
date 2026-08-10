@@ -27,7 +27,10 @@ export class AuthController {
 
   @Public()
   @Post('register')
-  @ApiOperation({ summary: 'User Registration', description: 'Register a new user account' })
+  @ApiOperation({
+    summary: 'User Registration',
+    description: 'Register a new user account.\n\n🔓 **Allowed Roles**: Public (No Authentication Required)',
+  })
   @ApiBody({ type: RegisterDto })
   @ApiResponse({
     status: 201,
@@ -42,7 +45,10 @@ export class AuthController {
 
   @Public()
   @Post('login')
-  @ApiOperation({ summary: 'User Login', description: 'Authenticate user with email & password and return JWT access token' })
+  @ApiOperation({
+    summary: 'User Login',
+    description: 'Authenticate user with email & password and return JWT access token.\n\n🔓 **Allowed Roles**: Public (No Authentication Required)',
+  })
   @ApiBody({ type: LoginDto })
   @ApiResponse({
     status: 200,
@@ -57,7 +63,10 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Get Logged-in User Profile', description: 'Fetch the profile of the currently authenticated user' })
+  @ApiOperation({
+    summary: 'Get Logged-in User Profile',
+    description: 'Fetch the profile of the currently authenticated user.\n\n🔒 **Allowed Roles**: Any Authenticated User',
+  })
   @ApiResponse({
     status: 200,
     description: 'Profile details of current user',

@@ -19,8 +19,7 @@ export class AuthService {
   async validateUser(email: string, password: string): Promise<any> {
     const user = await this.usersService.findByEmail(email);
     if (user && user.password && (await bcrypt.compare(password, user.password))) {
-      const userObj = user.toObject ? user.toObject() : user;
-      const { password: userPassword, pin, ...result } = userObj;
+      const { password: userPassword, pin, ...result } = user;
       return result;
     }
     return null;
@@ -36,7 +35,7 @@ export class AuthService {
     }
 
     const payload = {
-      sub: user._id,
+      sub: user.id,
       email: user.email,
       role: user.role,
       businessId: user.businessId,
@@ -48,16 +47,14 @@ export class AuthService {
   }
 
   async register(registerDto: RegisterDto) {
-    const userDoc = await this.usersService.create(registerDto as any);
-    const userObj = userDoc.toObject ? userDoc.toObject() : userDoc;
-    const { password, pin, ...result } = userObj;
+    const user = await this.usersService.create(registerDto as any);
+    const { password, pin, ...result } = user;
     return result;
   }
 
   async getProfile(userId: string) {
-    const userDoc = await this.usersService.findOne(userId);
-    const userObj = userDoc.toObject ? userDoc.toObject() : userDoc;
-    const { password, pin, ...result } = userObj;
+    const user = await this.usersService.findOne(userId);
+    const { password, pin, ...result } = user;
     return result;
   }
 }

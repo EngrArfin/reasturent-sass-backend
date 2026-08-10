@@ -19,7 +19,7 @@ import { UsersService } from './users.service';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 
-import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 
 @ApiTags('Users')
 @ApiBearerAuth('JWT-auth')
@@ -30,18 +30,30 @@ export class UsersController {
 
   @Post()
   @Roles(UserRole.SUPER_ADMIN, UserRole.BUSINESS_ADMIN)
+  @ApiOperation({
+    summary: 'Create User',
+    description: 'Create a new user.\n\n🔒 **Allowed Roles**: `SUPER_ADMIN`, `BUSINESS_ADMIN`',
+  })
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
 
   @Get()
   @Roles(UserRole.SUPER_ADMIN, UserRole.BUSINESS_ADMIN)
+  @ApiOperation({
+    summary: 'Get All Users',
+    description: 'Fetch all users (optionally filtered by businessId).\n\n🔒 **Allowed Roles**: `SUPER_ADMIN`, `BUSINESS_ADMIN`',
+  })
   findAll(@Query('businessId') businessId?: string) {
     return this.usersService.findAll(businessId);
   }
 
   @Get('role/:role')
   @Roles(UserRole.SUPER_ADMIN, UserRole.BUSINESS_ADMIN)
+  @ApiOperation({
+    summary: 'Get Users by Role',
+    description: 'Fetch users filtered by role.\n\n🔒 **Allowed Roles**: `SUPER_ADMIN`, `BUSINESS_ADMIN`',
+  })
   findByRole(
     @Param('role') role: UserRole,
     @Query('businessId') businessId?: string,
@@ -50,23 +62,39 @@ export class UsersController {
   }
 
   @Get(':id')
+  @ApiOperation({
+    summary: 'Get User by ID',
+    description: 'Fetch a single user profile by ID.\n\n🔒 **Allowed Roles**: Any Authenticated User',
+  })
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
   }
 
   @Patch(':id')
+  @ApiOperation({
+    summary: 'Update User',
+    description: 'Update user account information.\n\n🔒 **Allowed Roles**: Any Authenticated User',
+  })
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(id, updateUserDto);
   }
 
   @Delete(':id')
   @Roles(UserRole.SUPER_ADMIN)
+  @ApiOperation({
+    summary: 'Delete User',
+    description: 'Permanently remove a user account.\n\n🔒 **Allowed Roles**: `SUPER_ADMIN`',
+  })
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);
   }
 
   @Post(':id/change-pin')
   @Roles(UserRole.MANAGER, UserRole.BUSINESS_ADMIN)
+  @ApiOperation({
+    summary: 'Change User PIN',
+    description: 'Update account PIN for a user.\n\n🔒 **Allowed Roles**: `MANAGER`, `BUSINESS_ADMIN` (or self / `SUPER_ADMIN`)',
+  })
   changePin(
     @Param('id') id: string,
     @Body('pin') pin: string,

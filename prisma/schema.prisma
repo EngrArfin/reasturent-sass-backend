@@ -11,3 +11,42 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum UserRole {
+  super_admin
+  business_admin
+  manager
+  cashier
+  server
+  kitchen
+}
+
+model Business {
+  id           String   @id @default(uuid())
+  name         String   @unique
+  businessName String
+  email        String
+  phone        String?
+  address      String?
+  isActive     Boolean  @default(true)
+  settings     Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  users User[]
+}
+
+model User {
+  id         String    @id @default(uuid())
+  name       String
+  email      String    @unique
+  password   String
+  role       UserRole  @default(manager)
+  businessId String?
+  business   Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  pin        String?
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+

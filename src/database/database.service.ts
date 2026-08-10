@@ -1,16 +1,16 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { InjectConnection } from '@nestjs/mongoose';
-import { Connection } from 'mongoose';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class DatabaseService implements OnModuleInit {
-  constructor(@InjectConnection() private readonly connection: Connection) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async onModuleInit() {
     console.log('Database connected successfully');
   }
 
-  getConnection(): Connection {
-    return this.connection;
+  getPrisma(): PrismaService {
+    return this.prisma;
   }
 }
+

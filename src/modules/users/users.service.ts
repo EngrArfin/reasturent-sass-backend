@@ -4,24 +4,36 @@ import {
   ConflictException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
 import * as bcrypt from 'bcryptjs';
-import { User, UserDocument } from './user.schema';
+import { PrismaService } from '../../prisma/prisma.service';
+import { User, UserRole } from '../../../generated/prisma/client';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { UserRole } from 'src/enums/user-role.enum';
 
 @Injectable()
 export class UsersService {
-  constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
+  constructor(private prisma: PrismaService) {}
 
-  async create(createUserDto: CreateUserDto): Promise<UserDocument> {
-    const existingUser = await this.userModel.findOne({
-      email: createUserDto.email,
+  async create(createUserDto: CreateUserDto): Promise<User> {
+    if (!createUserDto.email) {
+      throw new ConflictException('Email is required');
+    }
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: createUserDto.email },
     });
     if (existingUser) {
       throw new ConflictException('Email already exists');
+    }
+
+    if (createUserDto.businessId) {
+      const business = await this.prisma.business.findUnique({
+        where: { id: createUserDto.businessId },
+      });
+      if (!business) {
+        throw new NotFoundException(
+          `Business with ID '${createUserDto.businessId}' does not exist`,
+        );
+      }
     }
 
     const hashedPassword = await bcrypt.hash(createUserDto.password || '', 10);
@@ -29,69 +41,76 @@ export class UsersService {
       ? await bcrypt.hash(createUserDto.pin, 10)
       : undefined;
 
-    const user = new this.userModel({
-      ...createUserDto,
-      password: hashedPassword,
-      pin: hashedPin,
-      businessId: createUserDto.businessId
-        ? new Types.ObjectId(createUserDto.businessId)
-        : undefined,
+    return this.prisma.user.create({
+      data: {
+        name: createUserDto.name,
+        email: createUserDto.email,
+        password: hashedPassword,
+        role: (createUserDto.role as UserRole) || UserRole.manager,
+        businessId: createUserDto.businessId || null,
+        pin: hashedPin,
+      },
     });
-
-    return user.save();
   }
 
-  async findAll(businessId?: string): Promise<UserDocument[]> {
-    const query = businessId ? { businessId: new Types.ObjectId(businessId) } : {};
-    return this.userModel.find(query).exec();
+  async findAll(businessId?: string): Promise<User[]> {
+    return this.prisma.user.findMany({
+      where: businessId ? { businessId } : {},
+    });
   }
 
-  async findByRole(role: UserRole, businessId?: string): Promise<UserDocument[]> {
-    const query: any = { role };
-    if (businessId) {
-      query.businessId = new Types.ObjectId(businessId);
-    }
-    return this.userModel.find(query).exec();
+  async findByRole(role: UserRole | string, businessId?: string): Promise<User[]> {
+    return this.prisma.user.findMany({
+      where: {
+        role: role as UserRole,
+        ...(businessId ? { businessId } : {}),
+      },
+    });
   }
 
-  async findOne(id: string): Promise<UserDocument> {
-    const user = await this.userModel.findById(id).exec();
+  async findOne(id: string): Promise<User> {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+    });
     if (!user) {
       throw new NotFoundException('User not found');
     }
     return user;
   }
 
-  async findByEmail(email: string): Promise<UserDocument | null> {
-    return this.userModel.findOne({ email }).exec();
+  async findByEmail(email: string): Promise<User | null> {
+    return this.prisma.user.findUnique({
+      where: { email },
+    });
   }
 
-  async update(
-    id: string,
-    updateUserDto: UpdateUserDto,
-  ): Promise<UserDocument> {
+  async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
+    const dataToUpdate: any = { ...updateUserDto };
     if (updateUserDto.password) {
-      updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
+      dataToUpdate.password = await bcrypt.hash(updateUserDto.password, 10);
     }
     if (updateUserDto.pin) {
-      updateUserDto.pin = await bcrypt.hash(updateUserDto.pin, 10);
+      dataToUpdate.pin = await bcrypt.hash(updateUserDto.pin, 10);
     }
 
-    const user = await this.userModel
-      .findByIdAndUpdate(id, updateUserDto, { new: true })
-      .exec();
-    if (!user) {
+    try {
+      return await this.prisma.user.update({
+        where: { id },
+        data: dataToUpdate,
+      });
+    } catch {
       throw new NotFoundException('User not found');
     }
-    return user;
   }
 
-  async remove(id: string): Promise<UserDocument> {
-    const user = await this.userModel.findByIdAndDelete(id).exec();
-    if (!user) {
+  async remove(id: string): Promise<User> {
+    try {
+      return await this.prisma.user.delete({
+        where: { id },
+      });
+    } catch {
       throw new NotFoundException('User not found');
     }
-    return user;
   }
 
   async changePin(
@@ -99,18 +118,21 @@ export class UsersService {
     newPin: string,
     currentUser: any,
   ): Promise<void> {
-    const user = await this.findOne(userId);
+    await this.findOne(userId);
 
-    // Check if current user has permission
     if (
-      currentUser.role !== UserRole.SUPER_ADMIN &&
-      currentUser.role !== UserRole.BUSINESS_ADMIN &&
+      currentUser.role !== 'super_admin' &&
+      currentUser.role !== 'business_admin' &&
       currentUser.userId !== userId
     ) {
       throw new UnauthorizedException("You cannot change this user's PIN");
     }
 
     const hashedPin = await bcrypt.hash(newPin, 10);
-    await this.userModel.findByIdAndUpdate(userId, { pin: hashedPin });
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { pin: hashedPin },
+    });
   }
 }
+
