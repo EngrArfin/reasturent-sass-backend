@@ -1,8 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
@@ -15,6 +13,7 @@ datasource db {
 enum UserRole {
   super_admin
   business_admin
+  supervisor
   manager
   cashier
   server
@@ -22,18 +21,24 @@ enum UserRole {
 }
 
 model Business {
-  id           String   @id @default(uuid())
-  name         String   @unique
-  businessName String
-  email        String
-  phone        String?
-  address      String?
-  isActive     Boolean  @default(true)
-  settings     Json?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id              String    @id @default(uuid())
+  name            String    @unique
+  businessName    String
+  email           String
+  phone           String?
+  address         String?
+  industry        String    @default("RESTAURANT")
+  subscriptionFee String    @default("CFA 99/mo")
+  lastSync        DateTime? @default(now())
+  allowedRoles    Json?     @default("[\"manager\", \"supervisor\", \"server\", \"kitchen\", \"cashier\"]")
+  isActive        Boolean   @default(true)
+  settings        Json?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  users User[]
+  users    User[]
+  vouchers Voucher[]
+  tickets  Ticket[]
 }
 
 model User {
@@ -50,3 +55,24 @@ model User {
   updatedAt  DateTime  @updatedAt
 }
 
+model Voucher {
+  id         String   @id @default(uuid())
+  code       String   @unique
+  amountOff  Float
+  expiresAt  DateTime
+  isActive   Boolean  @default(true)
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Ticket {
+  id         String    @id @default(uuid())
+  title      String
+  status     String    @default("OPEN")
+  businessId String?
+  business   Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}

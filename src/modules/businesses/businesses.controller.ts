@@ -17,8 +17,12 @@ import { BusinessesService } from './businesses.service';
 import { CreateBusinessDto } from './dto/create-business.dto';
 import { CreateManagerDto } from './dto/create-manager.dto';
 import { UpdateBusinessDto } from './dto/update-business.dto';
+import { CreateVoucherDto } from './dto/create-voucher.dto';
+import { ResetSupervisorDto } from './dto/reset-supervisor.dto';
+import { UpdateTenantRolesDto } from './dto/update-tenant-roles.dto';
+import { CreateUserDto } from '../users/dto/create-user.dto';
 
-import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiBody } from '@nestjs/swagger';
 
 @ApiTags('Businesses')
 @ApiBearerAuth('JWT-auth')
@@ -27,11 +31,49 @@ import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 export class BusinessesController {
   constructor(private readonly businessesService: BusinessesService) {}
 
+  @Get('admin-overview')
+  @Roles(UserRole.SUPER_ADMIN)
+  @ApiOperation({
+    summary: 'Super Admin Overview Metrics & Tenants',
+    description: 'Fetch high-level system metrics (tenants, tickets, revenue) and full tenant list for Super Admin Dashboard.\n\n🔒 **Allowed Roles**: `SUPER_ADMIN`',
+  })
+  getAdminOverview() {
+    return this.businessesService.getAdminOverview();
+  }
+
+  @Get('vouchers')
+  @Roles(UserRole.SUPER_ADMIN)
+  @ApiOperation({
+    summary: 'Get All Created Vouchers',
+    description: 'Fetch all vouchers across tenants.\n\n🔒 **Allowed Roles**: `SUPER_ADMIN`',
+  })
+  getAllVouchers() {
+    return this.businessesService.getAllVouchers();
+  }
+
   @Post()
   @Roles(UserRole.SUPER_ADMIN)
   @ApiOperation({
-    summary: 'Create Business',
-    description: 'Create a new business tenant.\n\n🔒 **Allowed Roles**: `SUPER_ADMIN`',
+    summary: 'Register New Business Tenant & Manager',
+    description: 'Create a new restaurant business tenant along with its initial Manager account and enabled employee roles.\n\n🔒 **Allowed Roles**: `SUPER_ADMIN`',
+  })
+  @ApiBody({
+    type: CreateBusinessDto,
+    description: 'Business registration details and manager credentials',
+    examples: {
+      default: {
+        summary: 'Standard Restaurant Tenant Registration',
+        value: {
+          businessName: 'Foodies Hub Restaurant',
+          subscriptionFee: '99.99',
+          managerEmail: 'manager@example.com',
+          managerPin: '1234',
+          allowedRoles: ['manager', 'server', 'cashier', 'kitchen'],
+          phone: '+1234567890',
+          address: '123 Main Street, City',
+        },
+      },
+    },
   })
   create(@Body() createBusinessDto: CreateBusinessDto) {
     return this.businessesService.create(createBusinessDto);
@@ -48,6 +90,58 @@ export class BusinessesController {
     @Body() createManagerDto: CreateManagerDto,
   ) {
     return this.businessesService.createManager(businessId, createManagerDto);
+  }
+
+  @Post(':businessId/users')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.BUSINESS_ADMIN)
+  @ApiOperation({
+    summary: 'Add User to Business',
+    description: 'Create a new user (with name, email, 4-digit PIN, role) assigned to a tenant.\n\n🔒 **Allowed Roles**: `SUPER_ADMIN`, `BUSINESS_ADMIN`',
+  })
+  addUserToBusiness(
+    @Param('businessId') businessId: string,
+    @Body() createUserDto: CreateUserDto,
+  ) {
+    return this.businessesService.addUserToBusiness(businessId, createUserDto);
+  }
+
+  @Post(':businessId/vouchers')
+  @Roles(UserRole.SUPER_ADMIN)
+  @ApiOperation({
+    summary: 'Create Voucher for Business',
+    description: 'Generate a discount voucher for a tenant.\n\n🔒 **Allowed Roles**: `SUPER_ADMIN`',
+  })
+  createVoucher(
+    @Param('businessId') businessId: string,
+    @Body() createVoucherDto: CreateVoucherDto,
+  ) {
+    return this.businessesService.createVoucher(businessId, createVoucherDto);
+  }
+
+  @Post(':businessId/reset-supervisor')
+  @Roles(UserRole.SUPER_ADMIN)
+  @ApiOperation({
+    summary: 'Reset Supervisor Credentials',
+    description: 'Reset supervisor email/PIN for a tenant.\n\n🔒 **Allowed Roles**: `SUPER_ADMIN`',
+  })
+  resetSupervisor(
+    @Param('businessId') businessId: string,
+    @Body() resetSupervisorDto: ResetSupervisorDto,
+  ) {
+    return this.businessesService.resetSupervisorCredentials(businessId, resetSupervisorDto);
+  }
+
+  @Patch(':businessId/roles')
+  @Roles(UserRole.SUPER_ADMIN)
+  @ApiOperation({
+    summary: 'Manage Tenant Roles',
+    description: 'Enable or disable operational roles for a tenant.\n\n🔒 **Allowed Roles**: `SUPER_ADMIN`',
+  })
+  updateTenantRoles(
+    @Param('businessId') businessId: string,
+    @Body() updateTenantRolesDto: UpdateTenantRolesDto,
+  ) {
+    return this.businessesService.updateTenantRoles(businessId, updateTenantRolesDto);
   }
 
   @Get()

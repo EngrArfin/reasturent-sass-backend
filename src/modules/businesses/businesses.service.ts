@@ -3,13 +3,18 @@ import {
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
+import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../prisma/prisma.service';
-import { Business } from '../../../generated/prisma/client';
+import { Business, Voucher } from '../../../generated/prisma/client';
 import { UsersService } from '../users/users.service';
 import { UserRole } from '../../enums/user-role.enum';
 import { CreateBusinessDto } from './dto/create-business.dto';
 import { CreateManagerDto } from './dto/create-manager.dto';
 import { UpdateBusinessDto } from './dto/update-business.dto';
+import { CreateVoucherDto } from './dto/create-voucher.dto';
+import { ResetSupervisorDto } from './dto/reset-supervisor.dto';
+import { UpdateTenantRolesDto } from './dto/update-tenant-roles.dto';
+import { CreateUserDto } from '../users/dto/create-user.dto';
 
 @Injectable()
 export class BusinessesService {
@@ -18,27 +23,75 @@ export class BusinessesService {
     private usersService: UsersService,
   ) {}
 
-  async create(createBusinessDto: CreateBusinessDto): Promise<Business> {
-    if (!createBusinessDto.name || !createBusinessDto.businessName || !createBusinessDto.email) {
-      throw new ConflictException('Required fields missing');
-    }
-    const existingBusiness = await this.prisma.business.findUnique({
-      where: { name: createBusinessDto.name },
-    });
-    if (existingBusiness) {
-      throw new ConflictException('Business name already exists');
+  async create(createBusinessDto: CreateBusinessDto): Promise<any> {
+    const businessName = createBusinessDto.businessName || createBusinessDto.name;
+    if (!businessName) {
+      throw new ConflictException('Business name is required');
     }
 
-    return this.prisma.business.create({
+    const email = createBusinessDto.managerEmail || (createBusinessDto as any).email;
+    if (!email) {
+      throw new ConflictException('Manager email is required');
+    }
+
+    const slug =
+      createBusinessDto.name ||
+      businessName.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now().toString().slice(-4);
+
+    const existingBusiness = await this.prisma.business.findFirst({
+      where: {
+        OR: [{ name: slug }, { email }],
+      },
+    });
+    if (existingBusiness) {
+      throw new ConflictException('Business name or Manager email already exists');
+    }
+
+    const allowedRoles = createBusinessDto.allowedRoles?.length
+      ? createBusinessDto.allowedRoles
+      : ['manager'];
+
+    const subFee = createBusinessDto.subscriptionFee
+      ? (createBusinessDto.subscriptionFee.includes('$') || createBusinessDto.subscriptionFee.includes('CFA')
+          ? createBusinessDto.subscriptionFee
+          : `$${createBusinessDto.subscriptionFee}/mo`)
+      : 'CFA 99/mo';
+
+    const business = await this.prisma.business.create({
       data: {
-        name: createBusinessDto.name,
-        businessName: createBusinessDto.businessName,
-        email: createBusinessDto.email,
+        name: slug,
+        businessName: businessName,
+        email: email,
         phone: createBusinessDto.phone,
         address: createBusinessDto.address,
+        subscriptionFee: subFee,
+        allowedRoles: allowedRoles,
         settings: createBusinessDto.settings ? (createBusinessDto.settings as any) : undefined,
       },
     });
+
+    const pin = createBusinessDto.managerPin || '1234';
+    const hashedPassword = await bcrypt.hash(pin, 10);
+    const hashedPin = await bcrypt.hash(pin, 10);
+
+    const manager = await this.prisma.user.create({
+      data: {
+        name: `${businessName} Manager`,
+        email: email,
+        password: hashedPassword,
+        pin: hashedPin,
+        role: 'manager' as any,
+        businessId: business.id,
+      },
+    });
+
+    const { password: pwd, pin: p, ...managerProfile } = manager;
+
+    return {
+      message: 'Business tenant created successfully with initial Manager account',
+      business,
+      manager: managerProfile,
+    };
   }
 
   async createManager(
@@ -60,12 +113,22 @@ export class BusinessesService {
   }
 
   async findAll(): Promise<Business[]> {
-    return this.prisma.business.findMany();
+    return this.prisma.business.findMany({
+      include: {
+        users: true,
+        vouchers: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   async findOne(id: string): Promise<Business> {
     const business = await this.prisma.business.findUnique({
       where: { id },
+      include: {
+        users: true,
+        vouchers: true,
+      },
     });
     if (!business) {
       throw new NotFoundException('Business not found');
@@ -100,5 +163,132 @@ export class BusinessesService {
       throw new NotFoundException('Business not found');
     }
   }
-}
 
+  // --- Super Admin Dashboard Services ---
+
+  async getAdminOverview() {
+    const totalTenants = await this.prisma.business.count();
+    const activeTickets = await this.prisma.ticket.count({
+      where: { status: 'OPEN' },
+    });
+    const monthlyRevenue = 0;
+    const systemInsight = 0;
+
+    const tenants = await this.findAll();
+
+    return {
+      metrics: {
+        totalTenants,
+        activeTickets,
+        monthlyRevenue,
+        systemInsight,
+      },
+      totalBusinesses: totalTenants,
+      tenants,
+    };
+  }
+
+  async createVoucher(
+    businessId: string,
+    createVoucherDto: CreateVoucherDto,
+  ): Promise<Voucher> {
+    await this.findOne(businessId);
+
+    const existingVoucher = await this.prisma.voucher.findUnique({
+      where: { code: createVoucherDto.code.toUpperCase() },
+    });
+    if (existingVoucher) {
+      throw new ConflictException('Voucher code already exists');
+    }
+
+    return this.prisma.voucher.create({
+      data: {
+        code: createVoucherDto.code.toUpperCase(),
+        amountOff: createVoucherDto.amountOff,
+        expiresAt: new Date(createVoucherDto.expiresAt),
+        isActive: createVoucherDto.isActive ?? true,
+        businessId,
+      },
+    });
+  }
+
+  async getAllVouchers() {
+    return this.prisma.voucher.findMany({
+      include: {
+        business: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async addUserToBusiness(
+    businessId: string,
+    createUserDto: CreateUserDto,
+  ) {
+    await this.findOne(businessId);
+    return this.usersService.create({
+      ...createUserDto,
+      businessId,
+    });
+  }
+
+  async resetSupervisorCredentials(
+    businessId: string,
+    resetSupervisorDto: ResetSupervisorDto,
+  ) {
+    const business = await this.findOne(businessId);
+
+    let supervisor = await this.prisma.user.findFirst({
+      where: {
+        businessId: business.id,
+        role: {
+          in: ['business_admin', 'supervisor' as any],
+        },
+      },
+    });
+
+    const hashedPassword = await bcrypt.hash(resetSupervisorDto.newPinOrPassword, 10);
+    const hashedPin = await bcrypt.hash(resetSupervisorDto.newPinOrPassword, 10);
+
+    if (supervisor) {
+      supervisor = await this.prisma.user.update({
+        where: { id: supervisor.id },
+        data: {
+          email: resetSupervisorDto.supervisorEmail || supervisor.email,
+          password: hashedPassword,
+          pin: hashedPin,
+        },
+      });
+    } else {
+      supervisor = await this.prisma.user.create({
+        data: {
+          name: `${business.name} Supervisor`,
+          email: resetSupervisorDto.supervisorEmail || `supervisor_${Date.now()}@${business.name.toLowerCase().replace(/\s+/g, '')}.com`,
+          password: hashedPassword,
+          pin: hashedPin,
+          role: 'supervisor' as any,
+          businessId: business.id,
+        },
+      });
+    }
+
+    const { password, pin, ...result } = supervisor;
+    return {
+      message: 'Supervisor credentials reset successfully',
+      user: result,
+    };
+  }
+
+  async updateTenantRoles(
+    businessId: string,
+    updateTenantRolesDto: UpdateTenantRolesDto,
+  ) {
+    await this.findOne(businessId);
+    return this.prisma.business.update({
+      where: { id: businessId },
+      data: {
+        allowedRoles: updateTenantRolesDto.allowedRoles,
+      },
+    });
+  }
+}
