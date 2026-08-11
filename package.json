@@ -21,6 +21,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.0.1",
@@ -28,6 +29,7 @@
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/swagger": "^11.4.2",
+    "@prisma/adapter-neon": "^7.9.1",
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.8.0",
     "bcrypt": "^6.0.0",
@@ -40,7 +42,8 @@
     "pg": "^8.23.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
-    "swagger-ui-express": "^5.0.1"
+    "swagger-ui-express": "^5.0.1",
+    "ws": "^8.21.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
@@ -56,6 +59,7 @@
     "@types/passport-local": "^1.0.38",
     "@types/pg": "^8.21.0",
     "@types/supertest": "^7.0.0",
+    "@types/ws": "^8.18.1",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",

@@ -3,15 +3,38 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 import * as bcrypt from 'bcryptjs';
 import 'dotenv/config';
-
-const connectionString =
-  process.env.DATABASE_URL ||
-  'postgresql://postgres:123456@localhost:5433/restaurant_saas?schema=public';
-const pool = new Pool({ connectionString });
-const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
+import * as dns from 'dns';
 
 async function main() {
+  const connectionString = process.env.DATABASE_URL!;
+  const url = new URL(connectionString);
+  let hostIp = url.hostname;
+  if (hostIp === 'localhost') {
+    hostIp = '127.0.0.1';
+  } else if (!/^[0-9.]+$/.test(hostIp)) {
+    try {
+      const ipv4Addresses = await dns.promises.resolve4(url.hostname);
+      hostIp = ipv4Addresses[0] || url.hostname;
+    } catch (e) {
+      hostIp = '127.0.0.1';
+    }
+  }
+
+  const isNeon = connectionString.includes('neon.tech') || connectionString.includes('sslmode=require');
+  const pool = new Pool({
+    user: decodeURIComponent(url.username),
+    password: decodeURIComponent(url.password),
+    host: hostIp,
+    port: parseInt(url.port || '5432'),
+    database: url.pathname.slice(1),
+    ssl: isNeon ? {
+      rejectUnauthorized: false,
+      servername: url.hostname,
+    } : undefined,
+  });
+
+  const adapter = new PrismaPg(pool);
+  const prisma = new PrismaClient({ adapter });
   const email = 'superadmin@gmail.com';
   const rawPassword = 'superadmin123';
   const rawPin = '1234';
@@ -19,37 +42,37 @@ async function main() {
   const hashedPassword = await bcrypt.hash(rawPassword, 10);
   const hashedPin = await bcrypt.hash(rawPin, 10);
 
-  const superAdmin = await prisma.user.upsert({
-    where: { email },
-    update: {
-      password: hashedPassword,
-      pin: hashedPin,
-      role: UserRole.super_admin,
-      isActive: true,
-    },
-    create: {
-      name: 'Super Admin',
-      email,
-      password: hashedPassword,
-      pin: hashedPin,
-      role: UserRole.super_admin,
-      isActive: true,
-    },
-  });
+  try {
+    const superAdmin = await prisma.user.upsert({
+      where: { email },
+      update: {
+        password: hashedPassword,
+        pin: hashedPin,
+        role: UserRole.super_admin,
+        isActive: true,
+      },
+      create: {
+        name: 'Super Admin',
+        email,
+        password: hashedPassword,
+        pin: hashedPin,
+        role: UserRole.super_admin,
+        isActive: true,
+      },
+    });
 
-  console.log('✅ Super Admin Created/Updated Successfully:');
-  console.log(`   Email: ${superAdmin.email}`);
-  console.log(`   Password: ${rawPassword}`);
-  console.log(`   PIN: ${rawPin}`);
-  console.log(`   Role: ${superAdmin.role}`);
-}
-
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
+    console.log('✅ Super Admin Created/Updated Successfully:');
+    console.log(`   Email: ${superAdmin.email}`);
+    console.log(`   Password: ${rawPassword}`);
+    console.log(`   PIN: ${rawPin}`);
+    console.log(`   Role: ${superAdmin.role}`);
+  } finally {
     await prisma.$disconnect();
     await pool.end();
-  });
+  }
+}
+
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

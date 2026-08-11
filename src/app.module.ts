@@ -8,6 +8,8 @@ import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { BusinessesModule } from './modules/businesses/businesses.module';
+import { SubscriptionPlansModule } from './modules/subscription-plans/subscription-plans.module';
+import { TicketsModule } from './modules/tickets/tickets.module';
 
 @Module({
   imports: [
@@ -20,6 +22,8 @@ import { BusinessesModule } from './modules/businesses/businesses.module';
     AuthModule,
     UsersModule,
     BusinessesModule,
+    SubscriptionPlansModule,
+    TicketsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

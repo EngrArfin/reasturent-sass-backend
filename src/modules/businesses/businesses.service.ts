@@ -171,8 +171,33 @@ export class BusinessesService {
     const activeTickets = await this.prisma.ticket.count({
       where: { status: 'OPEN' },
     });
-    const monthlyRevenue = 0;
-    const systemInsight = 0;
+
+    const activeBusinesses = await this.prisma.business.findMany({
+      where: { isActive: true },
+      include: { subscriptionPlan: true },
+    });
+
+    let monthlyRevenue = 0;
+    for (const biz of activeBusinesses) {
+      if (biz.subscriptionPlan) {
+        monthlyRevenue += biz.subscriptionPlan.amount;
+      } else if (biz.subscriptionFee) {
+        const matches = biz.subscriptionFee.match(/(\d+(?:\.\d+)?)/);
+        if (matches && matches[1]) {
+          monthlyRevenue += parseFloat(matches[1]);
+        }
+      }
+    }
+
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const systemInsight = await this.prisma.business.count({
+      where: {
+        createdAt: {
+          gte: thirtyDaysAgo,
+        },
+      },
+    });
 
     const tenants = await this.findAll();
 
@@ -218,6 +243,73 @@ export class BusinessesService {
         business: true,
       },
       orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async assignSubscriptionPlan(businessId: string, subscriptionPlanId: string) {
+    const business = await this.findOne(businessId);
+
+    const plan = await this.prisma.subscriptionPlan.findUnique({
+      where: { id: subscriptionPlanId },
+    });
+    if (!plan) {
+      throw new NotFoundException('Subscription plan not found');
+    }
+
+    const feeText = plan.amount === 0 ? 'FREE' : `$${plan.amount}/mo`;
+    return this.prisma.business.update({
+      where: { id: businessId },
+      data: {
+        subscriptionPlanId: plan.id,
+        subscriptionFee: feeText,
+      },
+      include: {
+        subscriptionPlan: true,
+      },
+    });
+  }
+
+  async updateVoucher(voucherId: string, updateVoucherDto: any) {
+    const voucher = await this.prisma.voucher.findUnique({
+      where: { id: voucherId },
+    });
+    if (!voucher) {
+      throw new NotFoundException('Voucher not found');
+    }
+
+    const data: any = { ...updateVoucherDto };
+    if (updateVoucherDto.code) {
+      data.code = updateVoucherDto.code.toUpperCase();
+      const existing = await this.prisma.voucher.findUnique({
+        where: { code: data.code },
+      });
+      if (existing && existing.id !== voucherId) {
+        throw new ConflictException('Voucher code already exists');
+      }
+    }
+    if (updateVoucherDto.expiresAt) {
+      data.expiresAt = new Date(updateVoucherDto.expiresAt);
+    }
+
+    return this.prisma.voucher.update({
+      where: { id: voucherId },
+      data,
+      include: {
+        business: true,
+      },
+    });
+  }
+
+  async deleteVoucher(voucherId: string) {
+    const voucher = await this.prisma.voucher.findUnique({
+      where: { id: voucherId },
+    });
+    if (!voucher) {
+      throw new NotFoundException('Voucher not found');
+    }
+
+    return this.prisma.voucher.delete({
+      where: { id: voucherId },
     });
   }
 

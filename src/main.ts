@@ -19,6 +19,9 @@ async function bootstrap() {
     .setTitle('Restaurant SaaS API')
     .setDescription('REST API Documentation for Restaurant SaaS Platform')
     .setVersion('1.0')
+    .addTag('Auth', 'Authentication & User Profile Operations')
+    .addTag('Admin', 'Super Admin Tenant & Business Management Operations')
+    .addTag('Users', 'User & Staff Account Operations')
     .addBearerAuth(
       {
         type: 'http',

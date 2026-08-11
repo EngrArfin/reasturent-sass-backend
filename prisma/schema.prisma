@@ -2,7 +2,7 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../generated/prisma"
 }
 
@@ -28,13 +28,15 @@ model Business {
   phone           String?
   address         String?
   industry        String    @default("RESTAURANT")
-  subscriptionFee String    @default("CFA 99/mo")
-  lastSync        DateTime? @default(now())
-  allowedRoles    Json?     @default("[\"manager\", \"supervisor\", \"server\", \"kitchen\", \"cashier\"]")
-  isActive        Boolean   @default(true)
+  subscriptionFee String            @default("CFA 99/mo")
+  lastSync        DateTime?         @default(now())
+  allowedRoles    Json?             @default("[\"manager\", \"supervisor\", \"server\", \"kitchen\", \"cashier\"]")
+  isActive        Boolean           @default(true)
   settings        Json?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  subscriptionPlanId String?
+  subscriptionPlan   SubscriptionPlan? @relation(fields: [subscriptionPlanId], references: [id], onDelete: SetNull)
 
   users    User[]
   vouchers Voucher[]
@@ -61,6 +63,7 @@ model Voucher {
   amountOff  Float
   expiresAt  DateTime
   isActive   Boolean  @default(true)
+  isUsed     Boolean  @default(false)
   businessId String
   business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   createdAt  DateTime @default(now())
@@ -75,4 +78,17 @@ model Ticket {
   business   Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
+}
+
+model SubscriptionPlan {
+  id          String     @id @default(uuid())
+  name        String     @unique
+  type        String
+  description String
+  amount      Float
+  currency    String     @default("USD")
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  businesses  Business[]
 }
