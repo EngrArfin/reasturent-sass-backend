@@ -1,4 +1,4 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsString,
   IsEmail,
@@ -9,7 +9,7 @@ import {
 } from 'class-validator';
 
 export class CreateBusinessDto {
-  @ApiPropertyOptional({
+  @ApiProperty({
     example: 'Foodies Hub Restaurant',
     description: 'Name of the business / restaurant tenant',
   })
@@ -17,31 +17,23 @@ export class CreateBusinessDto {
   @IsOptional()
   businessName?: string;
 
-  @ApiPropertyOptional({
-    example: 'foodies-hub',
-    description: 'Unique slug or business name',
+  @ApiProperty({
+    example: '99.99',
+    description: 'Monthly subscription fee ($ or CFA)',
   })
   @IsString()
   @IsOptional()
-  name?: string;
+  subscriptionFee?: string;
 
-  @ApiPropertyOptional({
-    example: 'manager@example.com',
-    description: 'Manager email address',
+  @ApiProperty({
+    example: 'manager@foodieshub.com',
+    description: 'Initial Manager email address',
   })
   @IsEmail()
   @IsOptional()
   managerEmail?: string;
 
-  @ApiPropertyOptional({
-    example: 'manager@example.com',
-    description: 'Business email address',
-  })
-  @IsEmail()
-  @IsOptional()
-  email?: string;
-
-  @ApiPropertyOptional({
+  @ApiProperty({
     example: '1234',
     description: '4-digit PIN for manager authentication',
   })
@@ -51,17 +43,9 @@ export class CreateBusinessDto {
   @IsOptional()
   managerPin?: string;
 
-  @ApiPropertyOptional({
-    example: '99.99',
-    description: 'Monthly subscription fee ($)',
-  })
-  @IsString()
-  @IsOptional()
-  subscriptionFee?: string;
-
-  @ApiPropertyOptional({
+  @ApiProperty({
     example: ['manager', 'server', 'cashier', 'kitchen'],
-    description: 'List of enabled employee roles for this business tenant',
+    description: 'List of enabled operational roles for this business tenant',
     isArray: true,
   })
   @IsArray()
@@ -84,6 +68,22 @@ export class CreateBusinessDto {
   @IsString()
   @IsOptional()
   address?: string;
+
+  @ApiPropertyOptional({
+    example: 'foodies-hub',
+    description: 'Unique slug or business name identifier',
+  })
+  @IsString()
+  @IsOptional()
+  name?: string;
+
+  @ApiPropertyOptional({
+    example: 'contact@foodieshub.com',
+    description: 'General business contact email address',
+  })
+  @IsEmail()
+  @IsOptional()
+  email?: string;
 
   @ApiPropertyOptional({
     example: { timezone: 'UTC', currency: 'USD', taxRate: 5 },
