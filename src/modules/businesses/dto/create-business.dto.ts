@@ -91,4 +91,13 @@ export class CreateBusinessDto {
   })
   @IsOptional()
   settings?: any;
+
+  @ApiPropertyOptional({
+    example: 'd9b2d63d-a233-4123-840e-3d84a7e9cb65',
+    description: 'ID of the assigned subscription plan',
+  })
+  @IsString()
+  @IsOptional()
+  subscriptionPlanId?: string;
 }
+

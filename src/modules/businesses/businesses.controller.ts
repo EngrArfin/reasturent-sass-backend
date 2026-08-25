@@ -85,11 +85,11 @@ export class BusinessesController {
   }
 
   @Get(':id')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.BUSINESS_ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.MANAGER)
   @ApiOperation({
     summary: '4. Get Business by ID',
     description:
-      'Fetch business details by ID.\n\n🔒 **Allowed Roles**: `SUPER_ADMIN`, `BUSINESS_ADMIN`',
+      'Fetch business details by ID.\n\n🔒 **Allowed Roles**: `SUPER_ADMIN`, `MANAGER`',
   })
   findOne(@Param('id') id: string) {
     return this.businessesService.findOne(id);
@@ -135,11 +135,11 @@ export class BusinessesController {
   }
 
   @Post(':businessId/users')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.BUSINESS_ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.MANAGER)
   @ApiOperation({
     summary: '8. Add User to Business',
     description:
-      'Create a new user (with name, email, 4-digit PIN, role) assigned to a tenant.\n\n🔒 **Allowed Roles**: `SUPER_ADMIN`, `BUSINESS_ADMIN`',
+      'Create a new user (with name, email, 4-digit PIN, role) assigned to a tenant.\n\n🔒 **Allowed Roles**: `SUPER_ADMIN`, `MANAGER`',
   })
   addUserToBusiness(
     @Param('businessId') businessId: string,

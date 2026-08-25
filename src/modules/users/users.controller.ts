@@ -29,30 +29,30 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
-  @Roles(UserRole.SUPER_ADMIN, UserRole.BUSINESS_ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.MANAGER)
   @ApiOperation({
     summary: 'Create User',
-    description: 'Create a new user.\n\n🔒 **Allowed Roles**: `SUPER_ADMIN`, `BUSINESS_ADMIN`',
+    description: 'Create a new user.\n\n🔒 **Allowed Roles**: `SUPER_ADMIN`, `MANAGER`',
   })
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
 
   @Get()
-  @Roles(UserRole.SUPER_ADMIN, UserRole.BUSINESS_ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.MANAGER)
   @ApiOperation({
     summary: 'Get All Users',
-    description: 'Fetch all users (optionally filtered by businessId).\n\n🔒 **Allowed Roles**: `SUPER_ADMIN`, `BUSINESS_ADMIN`',
+    description: 'Fetch all users (optionally filtered by businessId).\n\n🔒 **Allowed Roles**: `SUPER_ADMIN`, `MANAGER`',
   })
   findAll(@Query('businessId') businessId?: string) {
     return this.usersService.findAll(businessId);
   }
 
   @Get('role/:role')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.BUSINESS_ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.MANAGER)
   @ApiOperation({
     summary: 'Get Users by Role',
-    description: 'Fetch users filtered by role.\n\n🔒 **Allowed Roles**: `SUPER_ADMIN`, `BUSINESS_ADMIN`',
+    description: 'Fetch users filtered by role.\n\n🔒 **Allowed Roles**: `SUPER_ADMIN`, `MANAGER`',
   })
   findByRole(
     @Param('role') role: UserRole,
@@ -90,10 +90,10 @@ export class UsersController {
   }
 
   @Post(':id/change-pin')
-  @Roles(UserRole.MANAGER, UserRole.BUSINESS_ADMIN)
+  @Roles(UserRole.MANAGER, UserRole.SUPER_ADMIN)
   @ApiOperation({
     summary: 'Change User PIN',
-    description: 'Update account PIN for a user.\n\n🔒 **Allowed Roles**: `MANAGER`, `BUSINESS_ADMIN` (or self / `SUPER_ADMIN`)',
+    description: 'Update account PIN for a user.\n\n🔒 **Allowed Roles**: `MANAGER`, `SUPER_ADMIN` (or self)',
   })
   changePin(
     @Param('id') id: string,

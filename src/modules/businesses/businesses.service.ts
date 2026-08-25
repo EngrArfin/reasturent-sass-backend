@@ -29,14 +29,14 @@ export class BusinessesService {
       throw new ConflictException('Business name is required');
     }
 
-    const email = createBusinessDto.managerEmail || (createBusinessDto as any).email;
-    if (!email) {
-      throw new ConflictException('Manager email is required');
-    }
-
     const slug =
       createBusinessDto.name ||
       businessName.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now().toString().slice(-4);
+
+    const email =
+      createBusinessDto.managerEmail ||
+      (createBusinessDto as any).email ||
+      `manager@${slug}.com`;
 
     const existingBusiness = await this.prisma.business.findFirst({
       where: {
@@ -47,9 +47,12 @@ export class BusinessesService {
       throw new ConflictException('Business name or Manager email already exists');
     }
 
-    const allowedRoles = createBusinessDto.allowedRoles?.length
-      ? createBusinessDto.allowedRoles
-      : ['manager'];
+    // Sanitize allowed roles: manager is always included, remove business_admin
+    const rawRoles = createBusinessDto.allowedRoles || ['manager', 'server', 'cashier', 'kitchen'];
+    const filteredRoles = rawRoles
+      .map((r) => r.toLowerCase().trim())
+      .filter((r) => r !== 'business_admin');
+    const allowedRoles = Array.from(new Set(['manager', ...filteredRoles]));
 
     const subFee = createBusinessDto.subscriptionFee
       ? (createBusinessDto.subscriptionFee.includes('$') || createBusinessDto.subscriptionFee.includes('CFA')
@@ -66,7 +69,11 @@ export class BusinessesService {
         address: createBusinessDto.address,
         subscriptionFee: subFee,
         allowedRoles: allowedRoles,
+        subscriptionPlanId: createBusinessDto.subscriptionPlanId || undefined,
         settings: createBusinessDto.settings ? (createBusinessDto.settings as any) : undefined,
+      },
+      include: {
+        subscriptionPlan: true,
       },
     });
 
@@ -334,7 +341,7 @@ export class BusinessesService {
       where: {
         businessId: business.id,
         role: {
-          in: ['business_admin', 'supervisor' as any],
+          in: ['manager', 'supervisor' as any],
         },
       },
     });

@@ -122,7 +122,7 @@ export class UsersService {
 
     if (
       currentUser.role !== 'super_admin' &&
-      currentUser.role !== 'business_admin' &&
+      currentUser.role !== 'manager' &&
       currentUser.userId !== userId
     ) {
       throw new UnauthorizedException("You cannot change this user's PIN");
