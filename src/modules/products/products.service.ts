@@ -217,6 +217,111 @@ export class ProductsService {
     };
   }
 
+  async scanBarcode(code: string, user: any, requestedBusinessId?: string) {
+    if (!code || code.trim() === '') {
+      throw new BadRequestException('Barcode or QR code string is required');
+    }
+
+    const businessId = this.getEffectiveBusinessId(user, requestedBusinessId, false);
+    let searchCode = code.trim();
+
+    // Support structured QR code JSON payloads (e.g. {"barcode":"RENE-1001"})
+    if (searchCode.startsWith('{') && searchCode.endsWith('}')) {
+      try {
+        const parsed = JSON.parse(searchCode);
+        searchCode = parsed.barcode || parsed.sku || parsed.code || parsed.id || searchCode;
+      } catch (e) {}
+    }
+
+    const orConditions: any[] = [
+      { barcode: { equals: searchCode, mode: 'insensitive' } },
+      { sku: { equals: searchCode, mode: 'insensitive' } },
+    ];
+
+    // Check if searchCode matches UUID format
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(searchCode);
+    if (isUuid) {
+      orConditions.push({ id: searchCode });
+    }
+
+    const where: any = {
+      OR: orConditions,
+    };
+
+    if (businessId) {
+      where.businessId = businessId;
+    }
+
+    let product = await this.prisma.product.findFirst({
+      where,
+      include: {
+        business: {
+          select: {
+            id: true,
+            businessName: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    // Fallback: search by exact product name if no code matched
+    if (!product) {
+      const nameWhere: any = {
+        name: { equals: searchCode, mode: 'insensitive' },
+      };
+      if (businessId) {
+        nameWhere.businessId = businessId;
+      }
+      product = await this.prisma.product.findFirst({
+        where: nameWhere,
+        include: {
+          business: {
+            select: {
+              id: true,
+              businessName: true,
+              name: true,
+            },
+          },
+        },
+      });
+    }
+
+    if (!product) {
+      throw new NotFoundException(
+        `No product found matching barcode, SKU, or QR code "${searchCode}"`,
+      );
+    }
+
+    const stockStatus =
+      product.stock <= 0
+        ? 'OUT_OF_STOCK'
+        : product.stock <= 5
+        ? 'LOW_STOCK'
+        : 'IN_STOCK';
+
+    return {
+      success: true,
+      found: true,
+      scannedCode: searchCode,
+      product: {
+        id: product.id,
+        name: product.name,
+        barcode: product.barcode,
+        sku: product.sku,
+        stock: product.stock,
+        stockStatus,
+        price: product.price,
+        formattedPrice: `$${product.price.toFixed(2)}`,
+        businessId: product.businessId,
+        businessName: product.business?.businessName || product.business?.name,
+        isActive: product.isActive,
+        createdAt: product.createdAt,
+        updatedAt: product.updatedAt,
+      },
+    };
+  }
+
   async findOne(id: string, user: any) {
     const product = await this.prisma.product.findUnique({
       where: { id },

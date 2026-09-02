@@ -25,6 +25,7 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { QueryProductDto } from './dto/query-product.dto';
 import { UpdateStockDto } from './dto/update-stock.dto';
+import { ScanBarcodeDto } from './dto/scan-barcode.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -93,6 +94,83 @@ export class ProductsController {
   @ApiResponse({ status: 200, description: 'Generated unique SKU and barcode' })
   generateSku(@CurrentUser() user: any, @Query('businessId') businessId?: string) {
     return this.productsService.generateSku(user, businessId);
+  }
+
+  @Get('scan')
+  @Roles(
+    UserRole.MANAGER,
+    UserRole.SUPERVISOR,
+    UserRole.CASHIER,
+    UserRole.SERVER,
+    UserRole.SUPER_ADMIN,
+  )
+  @ApiOperation({
+    summary: 'Barcode & QR Scanner (Query Lookup)',
+    description:
+      'Instantly look up inventory product details, stock level, and price by scanning a barcode, QR code, or SKU.\n\n' +
+      '🔒 **Allowed Roles**: `MANAGER`, `SUPERVISOR`, `CASHIER`, `SERVER`, `SUPER_ADMIN`',
+  })
+  @ApiQuery({ name: 'code', required: true, description: 'Scanned barcode, QR code, or SKU (e.g. RENE-1001)' })
+  @ApiQuery({ name: 'businessId', required: false, description: 'Optional business ID for Super Admin' })
+  @ApiResponse({ status: 200, description: 'Product found with stock levels and pricing' })
+  @ApiResponse({ status: 404, description: 'Product not found' })
+  scanQuery(
+    @Query('code') code: string,
+    @CurrentUser() user: any,
+    @Query('businessId') businessId?: string,
+  ) {
+    return this.productsService.scanBarcode(code, user, businessId);
+  }
+
+  @Get('scan/:code')
+  @Roles(
+    UserRole.MANAGER,
+    UserRole.SUPERVISOR,
+    UserRole.CASHIER,
+    UserRole.SERVER,
+    UserRole.SUPER_ADMIN,
+  )
+  @ApiOperation({
+    summary: 'Barcode & QR Scanner (Path Param Lookup)',
+    description:
+      'Look up product stock and price by barcode path param (e.g. `/products/scan/RENE-1001`).\n\n' +
+      '🔒 **Allowed Roles**: `MANAGER`, `SUPERVISOR`, `CASHIER`, `SERVER`, `SUPER_ADMIN`',
+  })
+  @ApiParam({ name: 'code', description: 'Barcode, SKU, or QR code value' })
+  @ApiQuery({ name: 'businessId', required: false, description: 'Optional business ID for Super Admin' })
+  @ApiResponse({ status: 200, description: 'Product found' })
+  @ApiResponse({ status: 404, description: 'Product not found' })
+  scanParam(
+    @Param('code') code: string,
+    @CurrentUser() user: any,
+    @Query('businessId') businessId?: string,
+  ) {
+    return this.productsService.scanBarcode(code, user, businessId);
+  }
+
+  @Post('scan')
+  @Roles(
+    UserRole.MANAGER,
+    UserRole.SUPERVISOR,
+    UserRole.CASHIER,
+    UserRole.SERVER,
+    UserRole.SUPER_ADMIN,
+  )
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Barcode & QR Scanner (POST Body Lookup)',
+    description:
+      'POST barcode or QR code payload for inventory lookup and price verification.\n\n' +
+      '🔒 **Allowed Roles**: `MANAGER`, `SUPERVISOR`, `CASHIER`, `SERVER`, `SUPER_ADMIN`',
+  })
+  @ApiBody({ type: ScanBarcodeDto })
+  @ApiResponse({ status: 200, description: 'Product found' })
+  @ApiResponse({ status: 404, description: 'Product not found' })
+  scanPost(
+    @Body() scanDto: ScanBarcodeDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.productsService.scanBarcode(scanDto.code, user, scanDto.businessId);
   }
 
   @Get(':id')
