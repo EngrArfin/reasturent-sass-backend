@@ -41,6 +41,7 @@ model Business {
   users    User[]
   vouchers Voucher[]
   tickets  Ticket[]
+  products Product[]
 }
 
 model User {
@@ -91,4 +92,22 @@ model SubscriptionPlan {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   businesses  Business[]
+}
+
+model Product {
+  id         String   @id @default(uuid())
+  name       String
+  barcode    String?
+  sku        String?
+  stock      Int      @default(0)
+  price      Float    @default(0.0)
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([businessId])
+  @@index([barcode])
+  @@index([sku])
 }

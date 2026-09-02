@@ -22,6 +22,7 @@ async function bootstrap() {
     .addTag('Auth', 'Authentication & User Profile Operations')
     .addTag('Admin', 'Super Admin Tenant & Business Management Operations')
     .addTag('Users', 'User & Staff Account Operations')
+    .addTag('Manager - Inventory & Products', 'Manager Inventory & Product Catalog Management Operations')
     .addBearerAuth(
       {
         type: 'http',
