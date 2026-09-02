@@ -53,22 +53,30 @@ model User {
   businessId String?
   business   Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
   pin        String?
+  avatar     String?
   isActive   Boolean   @default(true)
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 }
 
 model Voucher {
-  id         String   @id @default(uuid())
-  code       String   @unique
-  amountOff  Float
-  expiresAt  DateTime
-  isActive   Boolean  @default(true)
-  isUsed     Boolean  @default(false)
-  businessId String
-  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id           String    @id @default(uuid())
+  name         String    @default("Special Voucher")
+  code         String?   @unique
+  minimumPrice Float     @default(0.0)
+  offPrice     String    @default("10%")
+  amountOff    Float     @default(0.0)
+  finalPrice   Float     @default(0.0)
+  requestedBy  String?   @default("Manager")
+  expiresAt    DateTime?
+  isActive     Boolean   @default(true)
+  isUsed       Boolean   @default(false)
+  businessId   String
+  business     Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([businessId])
 }
 
 model Ticket {

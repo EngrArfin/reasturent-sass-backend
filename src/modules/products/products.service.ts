@@ -15,10 +15,17 @@ import { UserRole } from '../../enums/user-role.enum';
 export class ProductsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private getEffectiveBusinessId(user: any, requestedBusinessId?: string): string {
-    if (user.role === UserRole.SUPER_ADMIN && requestedBusinessId) {
-      return requestedBusinessId;
+  private getEffectiveBusinessId(user: any, requestedBusinessId?: string, isRequired = true): string | undefined {
+    if (user.role === UserRole.SUPER_ADMIN) {
+      if (requestedBusinessId) {
+        return requestedBusinessId;
+      }
+      if (isRequired) {
+        throw new BadRequestException('businessId is required for Super Admin for this action');
+      }
+      return undefined;
     }
+
     const businessId = user.businessId;
     if (!businessId) {
       throw new BadRequestException('Current user is not associated with any business tenant');
@@ -27,39 +34,58 @@ export class ProductsService {
   }
 
   async generateSku(user: any, requestedBusinessId?: string) {
-    const businessId = this.getEffectiveBusinessId(user, requestedBusinessId);
+    const businessId = this.getEffectiveBusinessId(user, requestedBusinessId, false);
 
-    const business = await this.prisma.business.findUnique({
-      where: { id: businessId },
-      select: { name: true, businessName: true },
-    });
-
-    const count = await this.prisma.product.count({
-      where: { businessId },
-    });
-
-    // Generate prefix e.g. RENE or first 4 letters of business name
     let prefix = 'RENE';
-    if (business && business.businessName) {
-      const cleanName = business.businessName.replace(/[^A-Za-z]/g, '').toUpperCase();
-      if (cleanName.length >= 3) {
-        prefix = cleanName.substring(0, 4);
+    let count = 0;
+
+    if (businessId) {
+      const business = await this.prisma.business.findUnique({
+        where: { id: businessId },
+        select: { name: true, businessName: true },
+      });
+
+      count = await this.prisma.product.count({
+        where: { businessId },
+      });
+
+      // Generate prefix e.g. RENE or first 4 letters of business name
+      if (business && business.businessName) {
+        const cleanName = business.businessName.replace(/[^A-Za-z]/g, '').toUpperCase();
+        if (cleanName.length >= 3) {
+          prefix = cleanName.substring(0, 4);
+        }
       }
+    } else {
+      count = await this.prisma.product.count();
     }
 
     let codeNumber = 1001 + count;
     let generatedCode = `${prefix}-${codeNumber}`;
 
+    const whereCheck: any = {
+      OR: [{ barcode: generatedCode }, { sku: generatedCode }],
+    };
+    if (businessId) {
+      whereCheck.businessId = businessId;
+    }
+
     // Ensure uniqueness
     let exists = await this.prisma.product.findFirst({
-      where: { businessId, OR: [{ barcode: generatedCode }, { sku: generatedCode }] },
+      where: whereCheck,
     });
 
     while (exists) {
       codeNumber += 1;
       generatedCode = `${prefix}-${codeNumber}`;
+      const loopCheck: any = {
+        OR: [{ barcode: generatedCode }, { sku: generatedCode }],
+      };
+      if (businessId) {
+        loopCheck.businessId = businessId;
+      }
       exists = await this.prisma.product.findFirst({
-        where: { businessId, OR: [{ barcode: generatedCode }, { sku: generatedCode }] },
+        where: loopCheck,
       });
     }
 
@@ -70,7 +96,7 @@ export class ProductsService {
   }
 
   async create(createProductDto: CreateProductDto, user: any) {
-    const businessId = this.getEffectiveBusinessId(user, createProductDto.businessId);
+    const businessId = this.getEffectiveBusinessId(user, createProductDto.businessId, true)!;
 
     let barcode = createProductDto.barcode?.trim();
     let sku = createProductDto.sku?.trim();
@@ -123,15 +149,16 @@ export class ProductsService {
   }
 
   async findAll(query: QueryProductDto, user: any) {
-    const businessId = this.getEffectiveBusinessId(user, query.businessId);
+    const businessId = this.getEffectiveBusinessId(user, query.businessId, false);
 
     const page = Math.max(1, Number(query.page) || 1);
     const limit = Math.max(1, Math.min(100, Number(query.limit) || 10));
     const skip = (page - 1) * limit;
 
-    const whereClause: any = {
-      businessId,
-    };
+    const whereClause: any = {};
+    if (businessId) {
+      whereClause.businessId = businessId;
+    }
 
     if (query.search && query.search.trim() !== '') {
       const searchKeyword = query.search.trim();
@@ -366,10 +393,15 @@ export class ProductsService {
   }
 
   async getSummary(user: any, requestedBusinessId?: string) {
-    const businessId = this.getEffectiveBusinessId(user, requestedBusinessId);
+    const businessId = this.getEffectiveBusinessId(user, requestedBusinessId, false);
+
+    const whereClause: any = {};
+    if (businessId) {
+      whereClause.businessId = businessId;
+    }
 
     const products = await this.prisma.product.findMany({
-      where: { businessId },
+      where: whereClause,
       select: { stock: true, price: true },
     });
 

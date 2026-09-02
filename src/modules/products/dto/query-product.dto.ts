@@ -51,7 +51,8 @@ export class QueryProductDto {
 
   @ApiPropertyOptional({
     example: 'd8c7c975-d1fb-4813-9ec8-f1f4b23267f5',
-    description: 'Filter by Business ID (Only accessible by Super Admin; Managers always see their own business products)',
+    description:
+      'Optional. Leave empty for Managers/Supervisors (automatically scoped to own restaurant). If Super Admin provides this, filters by that business; if omitted, returns all products.',
   })
   @IsString()
   @IsOptional()

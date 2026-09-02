@@ -11,6 +11,7 @@ import { BusinessesModule } from './modules/businesses/businesses.module';
 import { SubscriptionPlansModule } from './modules/subscription-plans/subscription-plans.module';
 import { TicketsModule } from './modules/tickets/tickets.module';
 import { ProductsModule } from './modules/products/products.module';
+import { VouchersModule } from './modules/vouchers/vouchers.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { ProductsModule } from './modules/products/products.module';
     SubscriptionPlansModule,
     TicketsModule,
     ProductsModule,
+    VouchersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

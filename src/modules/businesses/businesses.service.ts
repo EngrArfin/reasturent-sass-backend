@@ -235,6 +235,7 @@ export class BusinessesService {
 
     return this.prisma.voucher.create({
       data: {
+        name: (createVoucherDto as any).name || `Voucher ${createVoucherDto.code.toUpperCase()}`,
         code: createVoucherDto.code.toUpperCase(),
         amountOff: createVoucherDto.amountOff,
         expiresAt: new Date(createVoucherDto.expiresAt),

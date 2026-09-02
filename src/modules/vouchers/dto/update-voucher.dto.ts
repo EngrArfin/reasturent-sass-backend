@@ -1,12 +1,12 @@
 import { PartialType } from '@nestjs/swagger';
-import { CreateUserDto } from './create-user.dto';
+import { CreateVoucherDto } from './create-voucher.dto';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsBoolean, IsOptional } from 'class-validator';
 
-export class UpdateUserDto extends PartialType(CreateUserDto) {
+export class UpdateVoucherDto extends PartialType(CreateVoucherDto) {
   @ApiPropertyOptional({
     example: true,
-    description: 'Whether the employee is active',
+    description: 'Voucher active status',
   })
   @IsOptional()
   @IsBoolean()

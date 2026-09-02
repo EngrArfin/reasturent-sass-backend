@@ -1,28 +1,54 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, BadRequestException } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Enable global validation pipe for DTO validation
+  // 1. Enable CORS for frontend applications
+  app.enableCors({
+    origin: true,
+    credentials: true,
+  });
+
+  // 2. Enable Global Exception Filter to properly handle ALL errors (HTTP, Prisma, DB, System)
+  app.useGlobalFilters(new AllExceptionsFilter());
+
+  // 3. Enable Global Validation Pipe with structured field-level error messages
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       transform: true,
       forbidNonWhitelisted: false,
+      exceptionFactory: (errors) => {
+        const details = errors.map((err) => ({
+          field: err.property,
+          errors: Object.values(err.constraints || {}),
+        }));
+        const messages = errors
+          .map((err) => Object.values(err.constraints || {}).join(', '))
+          .filter(Boolean);
+        return new BadRequestException({
+          message: messages.join('; ') || 'Validation failed',
+          validationErrors: details,
+          error: 'Bad Request',
+        });
+      },
     }),
   );
 
+  // 4. Swagger Documentation Setup
   const config = new DocumentBuilder()
     .setTitle('Restaurant SaaS API')
     .setDescription('REST API Documentation for Restaurant SaaS Platform')
     .setVersion('1.0')
     .addTag('Auth', 'Authentication & User Profile Operations')
     .addTag('Admin', 'Super Admin Tenant & Business Management Operations')
-    .addTag('Users', 'User & Staff Account Operations')
+    .addTag('Manager - Employees Management', 'Restaurant Staff & Employee Management Operations (Cards, Modals, PIN)')
     .addTag('Manager - Inventory & Products', 'Manager Inventory & Product Catalog Management Operations')
+    .addTag('Manager - Vouchers & Discounts', 'Restaurant Vouchers, Specials, and Staff Requested Discounts Operations')
     .addBearerAuth(
       {
         type: 'http',
@@ -45,4 +71,3 @@ async function bootstrap() {
   console.log(`Swagger documentation is available at http://localhost:${port}/api`);
 }
 bootstrap();
-
