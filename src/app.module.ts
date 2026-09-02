@@ -12,6 +12,7 @@ import { SubscriptionPlansModule } from './modules/subscription-plans/subscripti
 import { TicketsModule } from './modules/tickets/tickets.module';
 import { ProductsModule } from './modules/products/products.module';
 import { VouchersModule } from './modules/vouchers/vouchers.module';
+import { OverviewModule } from './modules/overview/overview.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { VouchersModule } from './modules/vouchers/vouchers.module';
     TicketsModule,
     ProductsModule,
     VouchersModule,
+    OverviewModule,
   ],
   controllers: [AppController],
   providers: [AppService],

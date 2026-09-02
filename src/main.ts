@@ -46,6 +46,7 @@ async function bootstrap() {
     .setVersion('1.0')
     .addTag('Auth', 'Authentication & User Profile Operations')
     .addTag('Admin', 'Super Admin Tenant & Business Management Operations')
+    .addTag('Manager - Overview Dashboard', 'Restaurant POS Overview KPI Metrics (Daily Sales, Transactions, Terminals, Orders)')
     .addTag('Manager - Employees Management', 'Restaurant Staff & Employee Management Operations (Cards, Modals, PIN)')
     .addTag('Manager - Inventory & Products', 'Manager Inventory & Product Catalog Management Operations')
     .addTag('Manager - Vouchers & Discounts', 'Restaurant Vouchers, Specials, and Staff Requested Discounts Operations')

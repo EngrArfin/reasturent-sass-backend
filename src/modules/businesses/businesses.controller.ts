@@ -7,9 +7,11 @@ import {
   Param,
   Delete,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 
 import { Roles } from '../../common/decorators/roles.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '../../enums/user-role.enum';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -24,7 +26,13 @@ import { CreateUserDto } from '../users/dto/create-user.dto';
 import { AssignPlanDto } from './dto/assign-plan.dto';
 import { UpdateVoucherDto } from './dto/update-voucher.dto';
 
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiBody } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiBody,
+  ApiQuery,
+} from '@nestjs/swagger';
 
 @ApiTags('Admin')
 @ApiBearerAuth('JWT-auth')
@@ -71,6 +79,21 @@ export class BusinessesController {
   })
   getAdminOverview() {
     return this.businessesService.getAdminOverview();
+  }
+
+  @Get('manager-overview')
+  @Roles(UserRole.MANAGER, UserRole.SUPERVISOR, UserRole.SUPER_ADMIN)
+  @ApiOperation({
+    summary: 'Manager Overview Metrics (Daily Sales, Transactions, Terminals, Orders)',
+    description:
+      'Fetch POS overview KPI card data for the current restaurant tenant.\n\n🔒 **Allowed Roles**: `MANAGER`, `SUPERVISOR`, `SUPER_ADMIN`',
+  })
+  @ApiQuery({ name: 'businessId', required: false, description: 'Optional business ID for Super Admin' })
+  getManagerOverview(
+    @CurrentUser() user: any,
+    @Query('businessId') businessId?: string,
+  ) {
+    return this.businessesService.getManagerOverview(user, businessId);
   }
 
   @Get()
