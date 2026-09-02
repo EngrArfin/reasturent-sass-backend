@@ -49,6 +49,7 @@ async function bootstrap() {
     .addTag('Manager - Employees Management', 'Restaurant Staff & Employee Management Operations (Cards, Modals, PIN)')
     .addTag('Manager - Inventory & Products', 'Manager Inventory & Product Catalog Management Operations')
     .addTag('Manager - Vouchers & Discounts', 'Restaurant Vouchers, Specials, and Staff Requested Discounts Operations')
+    .addTag('Manager & Admin - Support Tickets', 'Support Tickets, Auto-Captured Device Diagnostics, and Live Communication Thread')
     .addBearerAuth(
       {
         type: 'http',

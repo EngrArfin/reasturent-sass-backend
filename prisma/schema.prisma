@@ -80,13 +80,37 @@ model Voucher {
 }
 
 model Ticket {
-  id         String    @id @default(uuid())
-  title      String
-  status     String    @default("OPEN")
-  businessId String?
-  business   Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id              String          @id @default(uuid())
+  title           String          @default("Support Ticket")
+  category        String          @default("Sync Issue")
+  description     String?
+  status          String          @default("OPEN")
+  priority        String          @default("MEDIUM")
+  deviceId        String?         @default("RENE-POS-8821")
+  softwareVersion String?         @default("v2.4.1-stable")
+  lastSync        DateTime?       @default(now())
+  businessId      String?
+  business        Business?       @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  createdById     String?
+  messages        TicketMessage[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([businessId])
+  @@index([status])
+}
+
+model TicketMessage {
+  id         String   @id @default(uuid())
+  ticketId   String
+  ticket     Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  senderId   String?
+  senderName String   @default("User")
+  senderRole String   @default("manager")
+  message    String
+  createdAt  DateTime @default(now())
+
+  @@index([ticketId])
 }
 
 model SubscriptionPlan {
