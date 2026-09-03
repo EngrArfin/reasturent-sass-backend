@@ -17,6 +17,7 @@ import { TablesModule } from './modules/tables/tables.module';
 import { MenuItemsModule } from './modules/menu-items/menu-items.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { KitchenModule } from './modules/kitchen/kitchen.module';
+import { ServeModule } from './modules/serve/serve.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { KitchenModule } from './modules/kitchen/kitchen.module';
     MenuItemsModule,
     OrdersModule,
     KitchenModule,
+    ServeModule,
   ],
   controllers: [AppController],
   providers: [AppService],
