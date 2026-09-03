@@ -16,6 +16,7 @@ import { OverviewModule } from './modules/overview/overview.module';
 import { TablesModule } from './modules/tables/tables.module';
 import { MenuItemsModule } from './modules/menu-items/menu-items.module';
 import { OrdersModule } from './modules/orders/orders.module';
+import { KitchenModule } from './modules/kitchen/kitchen.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { OrdersModule } from './modules/orders/orders.module';
     TablesModule,
     MenuItemsModule,
     OrdersModule,
+    KitchenModule,
   ],
   controllers: [AppController],
   providers: [AppService],
