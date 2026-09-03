@@ -38,10 +38,13 @@ model Business {
   subscriptionPlanId String?
   subscriptionPlan   SubscriptionPlan? @relation(fields: [subscriptionPlanId], references: [id], onDelete: SetNull)
 
-  users    User[]
-  vouchers Voucher[]
-  tickets  Ticket[]
-  products Product[]
+  users     User[]
+  vouchers  Voucher[]
+  tickets   Ticket[]
+  products  Product[]
+  tables    RestaurantTable[]
+  menuItems MenuItem[]
+  orders    Order[]
 }
 
 model User {
@@ -142,4 +145,93 @@ model Product {
   @@index([businessId])
   @@index([barcode])
   @@index([sku])
+}
+
+enum TableStatus {
+  AVAILABLE
+  OCCUPIED
+  RESERVED
+}
+
+enum OrderStatus {
+  PENDING
+  PREPARING
+  READY
+  SERVED
+  COMPLETED
+  CANCELLED
+}
+
+model RestaurantTable {
+  id          String      @id @default(uuid())
+  tableNumber String
+  capacity    String      @default("4 Persons")
+  section     String      @default("Main Hall")
+  status      TableStatus @default(AVAILABLE)
+  subStatus   String?
+  isActive    Boolean     @default(true)
+  businessId  String
+  business    Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  orders      Order[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([businessId])
+  @@index([status])
+}
+
+model MenuItem {
+  id          String      @id @default(uuid())
+  name        String
+  description String?
+  category    String      @default("Main Course")
+  price       Float       @default(0.0)
+  prepTime    String?     @default("15 mins")
+  isAvailable Boolean     @default(true)
+  imageUrl    String?
+  isActive    Boolean     @default(true)
+  businessId  String
+  business    Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  orderItems  OrderItem[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([businessId])
+  @@index([category])
+  @@index([isAvailable])
+}
+
+model Order {
+  id          String           @id @default(uuid())
+  orderNumber String
+  tableNumber String?
+  status      OrderStatus      @default(PENDING)
+  totalBill   Float            @default(0.0)
+  notes       String?
+  tableId     String?
+  table       RestaurantTable? @relation(fields: [tableId], references: [id], onDelete: SetNull)
+  businessId  String
+  business    Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  items       OrderItem[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([businessId])
+  @@index([status])
+}
+
+model OrderItem {
+  id         String    @id @default(uuid())
+  orderId    String
+  order      Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItemId String?
+  menuItem   MenuItem? @relation(fields: [menuItemId], references: [id], onDelete: SetNull)
+  name       String
+  quantity   Int       @default(1)
+  unitPrice  Float     @default(0.0)
+  totalPrice Float     @default(0.0)
+  notes      String?
+  createdAt  DateTime  @default(now())
+
+  @@index([orderId])
 }

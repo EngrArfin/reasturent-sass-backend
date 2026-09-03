@@ -13,6 +13,9 @@ import { TicketsModule } from './modules/tickets/tickets.module';
 import { ProductsModule } from './modules/products/products.module';
 import { VouchersModule } from './modules/vouchers/vouchers.module';
 import { OverviewModule } from './modules/overview/overview.module';
+import { TablesModule } from './modules/tables/tables.module';
+import { MenuItemsModule } from './modules/menu-items/menu-items.module';
+import { OrdersModule } from './modules/orders/orders.module';
 
 @Module({
   imports: [
@@ -30,6 +33,9 @@ import { OverviewModule } from './modules/overview/overview.module';
     ProductsModule,
     VouchersModule,
     OverviewModule,
+    TablesModule,
+    MenuItemsModule,
+    OrdersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
