@@ -18,6 +18,7 @@ import { MenuItemsModule } from './modules/menu-items/menu-items.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { KitchenModule } from './modules/kitchen/kitchen.module';
 import { ServeModule } from './modules/serve/serve.module';
+import { CashierModule } from './modules/cashier/cashier.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { ServeModule } from './modules/serve/serve.module';
     OrdersModule,
     KitchenModule,
     ServeModule,
+    CashierModule,
   ],
   controllers: [AppController],
   providers: [AppService],
