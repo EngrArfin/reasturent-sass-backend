@@ -66,6 +66,60 @@ async function main() {
     console.log(`   Password: ${rawPassword}`);
     console.log(`   PIN: ${rawPin}`);
     console.log(`   Role: ${superAdmin.role}`);
+
+    // Create or update default demo business
+    const demoBusiness = await prisma.business.upsert({
+      where: { name: 'foodies-hub' },
+      update: {
+        businessName: 'Foodies Hub Restaurant',
+        email: 'manager@foodieshub.com',
+        allowedRoles: ['manager', 'supervisor', 'server', 'kitchen', 'cashier'],
+        isActive: true,
+      },
+      create: {
+        name: 'foodies-hub',
+        businessName: 'Foodies Hub Restaurant',
+        email: 'manager@foodieshub.com',
+        phone: '+1 800 555 0199',
+        address: '742 Evergreen Terrace, Springfield',
+        subscriptionFee: 'CFA 99/mo',
+        allowedRoles: ['manager', 'supervisor', 'server', 'kitchen', 'cashier'],
+        isActive: true,
+      },
+    });
+
+    // Seed Demo Users for all roles with PIN 1234
+    const demoUsers = [
+      { name: 'Restaurant Owner (Supervisor)', email: 'supervisor@foodieshub.com', role: UserRole.supervisor },
+      { name: 'Restaurant Manager', email: 'manager@foodieshub.com', role: UserRole.manager },
+      { name: 'POS Cashier', email: 'cashier@foodieshub.com', role: UserRole.cashier },
+      { name: 'Kitchen Chef', email: 'kitchen@foodieshub.com', role: UserRole.kitchen },
+      { name: 'Floor Server', email: 'server@foodieshub.com', role: UserRole.server },
+    ];
+
+    for (const u of demoUsers) {
+      await prisma.user.upsert({
+        where: { email: u.email },
+        update: {
+          name: u.name,
+          password: hashedPin,
+          pin: hashedPin,
+          role: u.role,
+          businessId: demoBusiness.id,
+          isActive: true,
+        },
+        create: {
+          name: u.name,
+          email: u.email,
+          password: hashedPin,
+          pin: hashedPin,
+          role: u.role,
+          businessId: demoBusiness.id,
+          isActive: true,
+        },
+      });
+      console.log(`   User [${u.role}]: ${u.email} (PIN: 1234)`);
+    }
   } finally {
     await prisma.$disconnect();
     await pool.end();

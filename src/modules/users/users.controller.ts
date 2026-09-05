@@ -30,7 +30,7 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 
-@ApiTags('Manager - Employees Management')
+@ApiTags('Supervisor & Manager - Employees Management')
 @ApiBearerAuth('JWT-auth')
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -38,13 +38,13 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
-  @Roles(UserRole.SUPER_ADMIN, UserRole.MANAGER)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.SUPERVISOR, UserRole.MANAGER)
   @ApiOperation({
     summary: 'Add New Employee Profile',
     description:
       'Creates a new staff/employee account for the restaurant (e.g. Manager, Server, Kitchen, Cashier).\n' +
       'If email or password are not provided, secure defaults are automatically generated for POS quick access.\n\n' +
-      '🔒 **Allowed Roles**: `MANAGER`, `SUPER_ADMIN`',
+      '🔒 **Allowed Roles**: `SUPERVISOR`, `MANAGER`, `SUPER_ADMIN`',
   })
   @ApiResponse({ status: 201, description: 'Employee created successfully' })
   @ApiResponse({ status: 400, description: 'Invalid input' })
@@ -56,14 +56,35 @@ export class UsersController {
     return this.usersService.create(createUserDto, user);
   }
 
+  @Get('approvals')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.SUPERVISOR, UserRole.MANAGER)
+  @ApiOperation({
+    summary: 'Get Staff & Manager Approval Requests',
+    description:
+      'Fetch all employee and manager approval requests for the Supervisor portal with KPI summary metrics.\n\n' +
+      '🔒 **Allowed Roles**: `SUPERVISOR`, `MANAGER`, `SUPER_ADMIN`',
+  })
+  @ApiQuery({ name: 'search', required: false, description: 'Search by employee name or email' })
+  @ApiQuery({ name: 'status', required: false, description: 'Filter by approval status (APPROVED, PENDING, BLOCKED)' })
+  @ApiQuery({ name: 'businessId', required: false, description: 'Optional business ID (Super Admin only)' })
+  @ApiResponse({ status: 200, description: 'List of approval requests and KPI metrics' })
+  getApprovals(
+    @CurrentUser() user: any,
+    @Query('businessId') businessId?: string,
+    @Query('search') search?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.usersService.getApprovals(user, businessId, search, status);
+  }
+
   @Get()
-  @Roles(UserRole.SUPER_ADMIN, UserRole.MANAGER, UserRole.SUPERVISOR)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.SUPERVISOR, UserRole.MANAGER)
   @ApiOperation({
     summary: 'Get All Employees',
     description:
       'Fetch all employee profiles for the current restaurant.\n' +
-      'For Managers, this is automatically scoped to their restaurant tenant.\n\n' +
-      '🔒 **Allowed Roles**: `MANAGER`, `SUPERVISOR`, `SUPER_ADMIN`',
+      'For Supervisors & Managers, this is automatically scoped to their restaurant tenant.\n\n' +
+      '🔒 **Allowed Roles**: `SUPERVISOR`, `MANAGER`, `SUPER_ADMIN`',
   })
   @ApiQuery({ name: 'search', required: false, description: 'Filter by employee name or email' })
   @ApiQuery({ name: 'role', required: false, description: 'Filter by role (manager, server, kitchen, cashier)' })
@@ -79,10 +100,10 @@ export class UsersController {
   }
 
   @Get(':id')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.MANAGER, UserRole.SUPERVISOR)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.SUPERVISOR, UserRole.MANAGER)
   @ApiOperation({
     summary: 'Get Employee Profile by ID',
-    description: 'Fetch detailed employee profile.\n\n🔒 **Allowed Roles**: `MANAGER`, `SUPERVISOR`, `SUPER_ADMIN`',
+    description: 'Fetch detailed employee profile.\n\n🔒 **Allowed Roles**: `SUPERVISOR`, `MANAGER`, `SUPER_ADMIN`',
   })
   @ApiParam({ name: 'id', description: 'Employee UUID' })
   @ApiResponse({ status: 200, description: 'Employee profile found' })
@@ -91,13 +112,31 @@ export class UsersController {
     return this.usersService.findOne(id, user);
   }
 
+  @Patch(':id/approval')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.SUPERVISOR)
+  @ApiOperation({
+    summary: 'Approve or Block Staff / Manager Access',
+    description:
+      'Supervisor action to Approve (Accept) or Block employee access to POS system.\n\n' +
+      '🔒 **Allowed Roles**: `SUPERVISOR`, `SUPER_ADMIN`',
+  })
+  @ApiParam({ name: 'id', description: 'Employee UUID' })
+  @ApiResponse({ status: 200, description: 'Approval status updated' })
+  updateApprovalStatus(
+    @Param('id') id: string,
+    @Body() body: { status?: string; isApproved?: boolean; isActive?: boolean },
+    @CurrentUser() user: any,
+  ) {
+    return this.usersService.updateApprovalStatus(id, body, user);
+  }
+
   @Patch(':id')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.MANAGER)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.SUPERVISOR, UserRole.MANAGER)
   @ApiOperation({
     summary: 'Edit Employee Profile',
     description:
       'Update employee name, system role, active status, or 4-digit quick-login PIN.\n\n' +
-      '🔒 **Allowed Roles**: `MANAGER`, `SUPER_ADMIN`',
+      '🔒 **Allowed Roles**: `SUPERVISOR`, `MANAGER`, `SUPER_ADMIN`',
   })
   @ApiParam({ name: 'id', description: 'Employee UUID' })
   @ApiResponse({ status: 200, description: 'Employee updated successfully' })
@@ -112,12 +151,12 @@ export class UsersController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
-  @Roles(UserRole.SUPER_ADMIN, UserRole.MANAGER)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.SUPERVISOR, UserRole.MANAGER)
   @ApiOperation({
     summary: 'Delete Employee',
     description:
       'Permanently delete an employee profile from the restaurant.\n\n' +
-      '🔒 **Allowed Roles**: `MANAGER`, `SUPER_ADMIN`',
+      '🔒 **Allowed Roles**: `SUPERVISOR`, `MANAGER`, `SUPER_ADMIN`',
   })
   @ApiParam({ name: 'id', description: 'Employee UUID' })
   @ApiResponse({ status: 200, description: 'Employee deleted successfully' })
@@ -127,12 +166,12 @@ export class UsersController {
   }
 
   @Post(':id/change-pin')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.MANAGER)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.SUPERVISOR, UserRole.MANAGER)
   @ApiOperation({
     summary: 'Update Quick-Login PIN',
     description:
       'Set or update the 4-digit quick-login PIN for an employee.\n\n' +
-      '🔒 **Allowed Roles**: `MANAGER`, `SUPER_ADMIN`',
+      '🔒 **Allowed Roles**: `SUPERVISOR`, `MANAGER`, `SUPER_ADMIN`',
   })
   @ApiParam({ name: 'id', description: 'Employee UUID' })
   @ApiResponse({ status: 200, description: 'PIN updated successfully' })

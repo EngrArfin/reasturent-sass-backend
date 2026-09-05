@@ -25,7 +25,25 @@ export class CreateBusinessDto {
   @IsOptional()
   subscriptionFee?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
+    example: 'supervisor@foodieshub.com',
+    description: 'Initial Supervisor / Restaurant Owner email address',
+  })
+  @IsEmail()
+  @IsOptional()
+  supervisorEmail?: string;
+
+  @ApiPropertyOptional({
+    example: '1234',
+    description: '4-digit PIN for supervisor authentication',
+  })
+  @IsString()
+  @MinLength(4)
+  @MaxLength(6)
+  @IsOptional()
+  supervisorPin?: string;
+
+  @ApiPropertyOptional({
     example: 'manager@foodieshub.com',
     description: 'Initial Manager email address',
   })
@@ -33,7 +51,7 @@ export class CreateBusinessDto {
   @IsOptional()
   managerEmail?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: '1234',
     description: '4-digit PIN for manager authentication',
   })

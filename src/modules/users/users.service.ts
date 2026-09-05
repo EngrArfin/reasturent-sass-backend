@@ -69,8 +69,21 @@ export class UsersService {
 
   private sanitizeUser(user: any) {
     const { password, pin, ...rest } = user;
+    const status = user.isActive === false ? 'BLOCKED' : 'APPROVED';
+    const departmentMap: Record<string, string> = {
+      manager: 'Floor Operations & Staffing',
+      supervisor: 'Management & Ownership',
+      cashier: 'Main POS Counter',
+      kitchen: 'KDS Hot Kitchen',
+      server: 'Dine-in Floor A',
+      super_admin: 'System Administration',
+    };
+    const department = user.department || departmentMap[user.role] || 'Restaurant Operations';
     return {
       ...rest,
+      status,
+      isApproved: user.isActive,
+      department,
       hasPin: !!pin,
       pin: pin ? '****' : null,
       avatar:
@@ -118,12 +131,16 @@ export class UsersService {
       }
     }
 
-    // Default password securely if not provided
-    const rawPassword = createUserDto.password || `Staff@${Math.floor(100000 + Math.random() * 900000)}`;
-    const hashedPassword = await bcrypt.hash(rawPassword, 10);
+    // Default password securely if not provided (use PIN if provided)
+    const rawPassword =
+      createUserDto.password ||
+      createUserDto.pin ||
+      `Staff@${Math.floor(100000 + Math.random() * 900000)}`;
+    const hashedPassword = await bcrypt.hash(rawPassword.trim(), 10);
 
-    const hashedPin = createUserDto.pin
-      ? await bcrypt.hash(createUserDto.pin.trim(), 10)
+    const pinToHash = createUserDto.pin || (createUserDto.password && /^\d{4}$/.test(createUserDto.password.trim()) ? createUserDto.password.trim() : null);
+    const hashedPin = pinToHash
+      ? await bcrypt.hash(pinToHash.trim(), 10)
       : null;
 
     const userRole = this.normalizeRole(createUserDto.role);
@@ -258,12 +275,16 @@ export class UsersService {
     }
 
     if (updateUserDto.password) {
-      dataToUpdate.password = await bcrypt.hash(updateUserDto.password, 10);
+      dataToUpdate.password = await bcrypt.hash(updateUserDto.password.trim(), 10);
     }
 
     // Only update PIN if provided and not the masked placeholder '****'
     if (updateUserDto.pin && updateUserDto.pin.trim() !== '****' && updateUserDto.pin.trim() !== '') {
-      dataToUpdate.pin = await bcrypt.hash(updateUserDto.pin.trim(), 10);
+      const hashedPin = await bcrypt.hash(updateUserDto.pin.trim(), 10);
+      dataToUpdate.pin = hashedPin;
+      if (!updateUserDto.password) {
+        dataToUpdate.password = hashedPin;
+      }
     }
 
     if (updateUserDto.avatar !== undefined) {
@@ -345,12 +366,115 @@ export class UsersService {
     const hashedPin = await bcrypt.hash(newPin.trim(), 10);
     await this.prisma.user.update({
       where: { id: userId },
-      data: { pin: hashedPin },
+      data: {
+        pin: hashedPin,
+        password: hashedPin,
+      },
     });
 
     return {
       message: `PIN for "${targetUser.name}" updated successfully`,
       userId: targetUser.id,
+    };
+  }
+
+  async getApprovals(
+    currentUser: any,
+    businessIdQuery?: string,
+    search?: string,
+    statusFilter?: string,
+  ) {
+    const businessId = this.getEffectiveBusinessId(currentUser, businessIdQuery, false);
+
+    const where: any = {};
+    if (businessId) {
+      where.businessId = businessId;
+    }
+
+    // Exclude super admins from business approvals grid
+    if (currentUser && currentUser.role !== AppUserRole.SUPER_ADMIN) {
+      where.role = { not: UserRole.super_admin };
+    }
+
+    if (search && search.trim() !== '') {
+      const q = search.trim();
+      where.OR = [
+        { name: { contains: q, mode: 'insensitive' } },
+        { email: { contains: q, mode: 'insensitive' } },
+      ];
+    }
+
+    if (statusFilter === 'APPROVED' || statusFilter === 'active') {
+      where.isActive = true;
+    } else if (statusFilter === 'PENDING' || statusFilter === 'BLOCKED' || statusFilter === 'inactive') {
+      where.isActive = false;
+    }
+
+    const allBusinessUsers = await this.prisma.user.findMany({
+      where: businessId ? { businessId, role: { not: UserRole.super_admin } } : { role: { not: UserRole.super_admin } },
+    });
+
+    const approvedCount = allBusinessUsers.filter((u) => u.isActive).length;
+    const pendingCount = allBusinessUsers.filter((u) => !u.isActive).length;
+    const blockedCount = pendingCount;
+    const totalCount = allBusinessUsers.length;
+
+    const users = await this.prisma.user.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return {
+      metrics: {
+        totalCount,
+        approvedCount,
+        pendingCount,
+        blockedCount,
+      },
+      requests: users.map((u) => this.sanitizeUser(u)),
+      employees: users.map((u) => this.sanitizeUser(u)),
+    };
+  }
+
+  async updateApprovalStatus(
+    userId: string,
+    statusOrApproved: { status?: string; isApproved?: boolean; isActive?: boolean },
+    currentUser: any,
+  ) {
+    const targetUser = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!targetUser) {
+      throw new NotFoundException(`User with ID '${userId}' not found`);
+    }
+
+    if (
+      currentUser.role !== AppUserRole.SUPER_ADMIN &&
+      targetUser.businessId !== currentUser.businessId
+    ) {
+      throw new UnauthorizedException('You can only manage approvals for your own restaurant');
+    }
+
+    let nextIsActive = true;
+    if (statusOrApproved.status) {
+      nextIsActive = statusOrApproved.status.toUpperCase() === 'APPROVED';
+    } else if (statusOrApproved.isApproved !== undefined) {
+      nextIsActive = !!statusOrApproved.isApproved;
+    } else if (statusOrApproved.isActive !== undefined) {
+      nextIsActive = !!statusOrApproved.isActive;
+    }
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: { isActive: nextIsActive },
+    });
+
+    const statusLabel = nextIsActive ? 'APPROVED' : 'BLOCKED';
+    return {
+      message: `User "${targetUser.name}" has been ${statusLabel} successfully`,
+      user: this.sanitizeUser(updated),
+      status: statusLabel,
     };
   }
 }

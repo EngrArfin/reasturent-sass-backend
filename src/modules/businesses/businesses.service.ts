@@ -78,27 +78,62 @@ export class BusinessesService {
       },
     });
 
-    const pin = createBusinessDto.managerPin || '1234';
-    const hashedPassword = await bcrypt.hash(pin, 10);
-    const hashedPin = await bcrypt.hash(pin, 10);
+    const supervisorEmail =
+      createBusinessDto.supervisorEmail ||
+      createBusinessDto.managerEmail ||
+      (createBusinessDto as any).email ||
+      `supervisor@${slug}.com`;
 
-    const manager = await this.prisma.user.create({
+    const pin = createBusinessDto.supervisorPin || createBusinessDto.managerPin || '1234';
+    const hashedPassword = await bcrypt.hash(pin.trim(), 10);
+    const hashedPin = await bcrypt.hash(pin.trim(), 10);
+
+    const isSupervisor = !!createBusinessDto.supervisorEmail || !createBusinessDto.managerEmail;
+    const initialRole = isSupervisor ? ('supervisor' as any) : ('manager' as any);
+    const initialName = isSupervisor ? `${businessName} Owner` : `${businessName} Manager`;
+
+    const ownerUser = await this.prisma.user.create({
       data: {
-        name: `${businessName} Manager`,
-        email: email,
+        name: initialName,
+        email: supervisorEmail.toLowerCase().trim(),
         password: hashedPassword,
         pin: hashedPin,
-        role: 'manager' as any,
+        role: initialRole,
         businessId: business.id,
+        isActive: true,
       },
     });
 
-    const { password: pwd, pin: p, ...managerProfile } = manager;
+    // If both supervisor and manager emails were provided, create manager as well
+    let managerUser: any = null;
+    if (
+      createBusinessDto.supervisorEmail &&
+      createBusinessDto.managerEmail &&
+      createBusinessDto.supervisorEmail.toLowerCase().trim() !== createBusinessDto.managerEmail.toLowerCase().trim()
+    ) {
+      const mgrPin = createBusinessDto.managerPin || '1234';
+      const mgrHashed = await bcrypt.hash(mgrPin.trim(), 10);
+      managerUser = await this.prisma.user.create({
+        data: {
+          name: `${businessName} Manager`,
+          email: createBusinessDto.managerEmail.toLowerCase().trim(),
+          password: mgrHashed,
+          pin: mgrHashed,
+          role: 'manager' as any,
+          businessId: business.id,
+          isActive: true,
+        },
+      });
+    }
+
+    const { password: _pwd, pin: _p, ...ownerProfile } = ownerUser;
 
     return {
-      message: 'Business tenant created successfully with initial Manager account',
+      message: 'Business tenant created successfully with initial Supervisor / Manager account',
       business,
-      manager: managerProfile,
+      user: ownerProfile,
+      supervisor: ownerProfile,
+      manager: managerUser ? this.usersService['sanitizeUser'](managerUser) : undefined,
     };
   }
 
