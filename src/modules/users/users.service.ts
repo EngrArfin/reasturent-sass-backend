@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../prisma/prisma.service';
-import { UserRole } from '../../../generated/prisma/client';
+import { UserRole } from '@prisma/client';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserRole as AppUserRole } from '../../enums/user-role.enum';
@@ -69,7 +69,10 @@ export class UsersService {
 
   private sanitizeUser(user: any) {
     const { password, pin, ...rest } = user;
-    const status = user.isActive === false ? 'BLOCKED' : 'APPROVED';
+    const isApproved = user.isActive !== false;
+    const status = isApproved ? 'APPROVED' : 'PENDING';
+    const approvalStatus = isApproved ? 'Approved (Can Login)' : 'Pending Acceptance';
+
     const departmentMap: Record<string, string> = {
       manager: 'Floor Operations & Staffing',
       supervisor: 'Management & Ownership',
@@ -79,13 +82,17 @@ export class UsersService {
       super_admin: 'System Administration',
     };
     const department = user.department || departmentMap[user.role] || 'Restaurant Operations';
+
     return {
       ...rest,
       status,
-      isApproved: user.isActive,
+      approvalStatus,
+      isApproved,
+      isActive: user.isActive,
       department,
       hasPin: !!pin,
       pin: pin ? '****' : null,
+      accessPin: pin ? 'PIN: **** (Active)' : null,
       avatar:
         user.avatar ||
         `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user.name || 'User')}`,
@@ -458,7 +465,14 @@ export class UsersService {
 
     let nextIsActive = true;
     if (statusOrApproved.status) {
-      nextIsActive = statusOrApproved.status.toUpperCase() === 'APPROVED';
+      const s = statusOrApproved.status.trim().toUpperCase();
+      if (s === 'APPROVED' || s === 'ACCEPT' || s === 'ACCEPT & APPROVE' || s === 'ACTIVE') {
+        nextIsActive = true;
+      } else if (s === 'BLOCKED' || s === 'BLOCK' || s === 'REJECT' || s === 'SUSPEND' || s === 'SUSPENDED' || s === 'PENDING') {
+        nextIsActive = false;
+      } else {
+        nextIsActive = true;
+      }
     } else if (statusOrApproved.isApproved !== undefined) {
       nextIsActive = !!statusOrApproved.isApproved;
     } else if (statusOrApproved.isActive !== undefined) {

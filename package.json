@@ -7,7 +7,8 @@
   "license": "UNLICENSED",
   "scripts": {
     "dev": "npx kill-port 3000 && nest start --watch",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "prisma generate && tsc -p tsconfig.build.json",
+    "vercel-build": "prisma generate && tsc -p tsconfig.build.json",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "npm run build && nest start",

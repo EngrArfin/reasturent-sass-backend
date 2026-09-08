@@ -30,7 +30,7 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 
-@ApiTags('Supervisor & Manager - Employees Management')
+@ApiTags('Manager - Employees Management')
 @ApiBearerAuth('JWT-auth')
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)

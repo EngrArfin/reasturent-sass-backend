@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../prisma/prisma.service';
-import { Business, Voucher } from '../../../generated/prisma/client';
+import { Business, Voucher } from '@prisma/client';
 import { UsersService } from '../users/users.service';
 import { UserRole } from '../../enums/user-role.enum';
 import { CreateBusinessDto } from './dto/create-business.dto';
@@ -22,10 +22,10 @@ export class BusinessesService {
   constructor(
     private prisma: PrismaService,
     private usersService: UsersService,
-  ) {}
+  ) { }
 
   async create(createBusinessDto: CreateBusinessDto): Promise<any> {
-    const businessName = createBusinessDto.businessName || createBusinessDto.name;
+    const businessName = (createBusinessDto.businessName || createBusinessDto.name || '').trim();
     if (!businessName) {
       throw new ConflictException('Business name is required');
     }
@@ -34,10 +34,12 @@ export class BusinessesService {
       createBusinessDto.name ||
       businessName.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now().toString().slice(-4);
 
-    const email =
+    const email = (
+      createBusinessDto.supervisorEmail ||
       createBusinessDto.managerEmail ||
       (createBusinessDto as any).email ||
-      `manager@${slug}.com`;
+      `supervisor@${slug}.com`
+    ).toLowerCase().trim();
 
     const existingBusiness = await this.prisma.business.findFirst({
       where: {
@@ -45,21 +47,44 @@ export class BusinessesService {
       },
     });
     if (existingBusiness) {
-      throw new ConflictException('Business name or Manager email already exists');
+      throw new ConflictException(
+        `Business name "${businessName}" or email "${email}" already registered. Please use a unique name and email.`,
+      );
     }
 
-    // Sanitize allowed roles: manager is always included, remove business_admin
-    const rawRoles = createBusinessDto.allowedRoles || ['manager', 'server', 'cashier', 'kitchen'];
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email },
+    });
+    if (existingUser) {
+      throw new ConflictException(
+        `A user account with email "${email}" already exists. Please choose a different email.`,
+      );
+    }
+
+    // Helper to normalize UI role strings (e.g. "Supervisor / Owner (Required)" -> "supervisor")
+    const normalizeRoleString = (r: string): string => {
+      const lower = r.toLowerCase().trim();
+      if (lower.includes('super admin') || lower.includes('super_admin')) return 'super_admin';
+      if (lower.includes('supervisor') || lower.includes('owner')) return 'supervisor';
+      if (lower.includes('manager')) return 'manager';
+      if (lower.includes('server') || lower.includes('waiter')) return 'server';
+      if (lower.includes('cashier')) return 'cashier';
+      if (lower.includes('kitchen')) return 'kitchen';
+      return lower;
+    };
+
+    // Sanitize allowed roles: manager & supervisor always included, remove business_admin
+    const rawRoles = createBusinessDto.allowedRoles || ['supervisor', 'manager', 'server', 'cashier', 'kitchen'];
     const filteredRoles = rawRoles
-      .map((r) => r.toLowerCase().trim())
+      .map((r) => normalizeRoleString(r))
       .filter((r) => r !== 'business_admin');
-    const allowedRoles = Array.from(new Set(['manager', ...filteredRoles]));
+    const allowedRoles = Array.from(new Set(['supervisor', 'manager', ...filteredRoles]));
 
     const subFee = createBusinessDto.subscriptionFee
       ? (createBusinessDto.subscriptionFee.includes('$') || createBusinessDto.subscriptionFee.includes('CFA')
-          ? createBusinessDto.subscriptionFee
-          : `$${createBusinessDto.subscriptionFee}/mo`)
-      : 'CFA 99/mo';
+        ? createBusinessDto.subscriptionFee
+        : `$${createBusinessDto.subscriptionFee}/month`)
+      : '$49.99 / month';
 
     const business = await this.prisma.business.create({
       data: {
@@ -78,52 +103,61 @@ export class BusinessesService {
       },
     });
 
-    const supervisorEmail =
-      createBusinessDto.supervisorEmail ||
-      createBusinessDto.managerEmail ||
-      (createBusinessDto as any).email ||
-      `supervisor@${slug}.com`;
+    const supervisorEmail = email;
+    const pin = (
+      createBusinessDto.supervisorPin ||
+      createBusinessDto.managerPin ||
+      (createBusinessDto as any).pin ||
+      '1234'
+    ).toString().trim();
 
-    const pin = createBusinessDto.supervisorPin || createBusinessDto.managerPin || '1234';
-    const hashedPassword = await bcrypt.hash(pin.trim(), 10);
-    const hashedPin = await bcrypt.hash(pin.trim(), 10);
+    const hashedPassword = await bcrypt.hash(pin, 10);
+    const hashedPin = await bcrypt.hash(pin, 10);
 
-    const isSupervisor = !!createBusinessDto.supervisorEmail || !createBusinessDto.managerEmail;
-    const initialRole = isSupervisor ? ('supervisor' as any) : ('manager' as any);
-    const initialName = isSupervisor ? `${businessName} Owner` : `${businessName} Manager`;
+    const roleTypeInput = (createBusinessDto as any).roleType || (createBusinessDto as any).role;
+    let initialRole: any = 'supervisor';
+    if (roleTypeInput) {
+      initialRole = normalizeRoleString(roleTypeInput);
+    }
+
+    const initialName = `${businessName} ${initialRole === 'supervisor' ? 'Owner / Supervisor' : 'Manager'}`;
 
     const ownerUser = await this.prisma.user.create({
       data: {
         name: initialName,
-        email: supervisorEmail.toLowerCase().trim(),
+        email: supervisorEmail,
         password: hashedPassword,
         pin: hashedPin,
-        role: initialRole,
+        role: initialRole as any,
         businessId: business.id,
         isActive: true,
       },
     });
 
-    // If both supervisor and manager emails were provided, create manager as well
+    // If both supervisor and manager emails were provided distinctly, create manager account as well
     let managerUser: any = null;
     if (
       createBusinessDto.supervisorEmail &&
       createBusinessDto.managerEmail &&
       createBusinessDto.supervisorEmail.toLowerCase().trim() !== createBusinessDto.managerEmail.toLowerCase().trim()
     ) {
-      const mgrPin = createBusinessDto.managerPin || '1234';
-      const mgrHashed = await bcrypt.hash(mgrPin.trim(), 10);
-      managerUser = await this.prisma.user.create({
-        data: {
-          name: `${businessName} Manager`,
-          email: createBusinessDto.managerEmail.toLowerCase().trim(),
-          password: mgrHashed,
-          pin: mgrHashed,
-          role: 'manager' as any,
-          businessId: business.id,
-          isActive: true,
-        },
-      });
+      const mgrEmail = createBusinessDto.managerEmail.toLowerCase().trim();
+      const existingMgr = await this.prisma.user.findUnique({ where: { email: mgrEmail } });
+      if (!existingMgr) {
+        const mgrPin = (createBusinessDto.managerPin || '1234').toString().trim();
+        const mgrHashed = await bcrypt.hash(mgrPin, 10);
+        managerUser = await this.prisma.user.create({
+          data: {
+            name: `${businessName} Manager`,
+            email: mgrEmail,
+            password: mgrHashed,
+            pin: mgrHashed,
+            role: 'manager' as any,
+            businessId: business.id,
+            isActive: true,
+          },
+        });
+      }
     }
 
     const { password: _pwd, pin: _p, ...ownerProfile } = ownerUser;

@@ -46,11 +46,18 @@ async function bootstrap() {
     .setVersion('1.0')
     .addTag('Auth', 'Authentication & User Profile Operations')
     .addTag('Admin', 'Super Admin Tenant & Business Management Operations')
+    .addTag('Subscription Plans', 'SaaS Pricing & Subscription Tier Management')
     .addTag('Manager - Overview Dashboard', 'Restaurant POS Overview KPI Metrics (Daily Sales, Transactions, Terminals, Orders)')
     .addTag('Manager - Employees Management', 'Restaurant Staff & Employee Management Operations (Cards, Modals, PIN)')
     .addTag('Manager - Inventory & Products', 'Manager Inventory & Product Catalog Management Operations')
+    .addTag('Manager - Food & Tables', 'Dining Tables & Seating Management Operations')
+    .addTag('Manager - Food & Menu Catalog', 'Food Dishes, Categories & Recipe Catalog Operations')
+    .addTag('Manager - Food & Active Orders', 'Kitchen & Table Order Processing Operations')
     .addTag('Manager - Vouchers & Discounts', 'Restaurant Vouchers, Specials, and Staff Requested Discounts Operations')
     .addTag('Manager & Admin - Support Tickets', 'Support Tickets, Auto-Captured Device Diagnostics, and Live Communication Thread')
+    .addTag('Kitchen - Kitchen Production & KDS', 'Kitchen Display System & Ticket Operations')
+    .addTag('Service - Waiter & Server Floor Dashboard', 'Waiter & Service Floor Table Management')
+    .addTag('Cashier - POS Hub & Payment Processing', 'Cashier Billing & POS Checkout Operations')
     .addBearerAuth(
       {
         type: 'http',

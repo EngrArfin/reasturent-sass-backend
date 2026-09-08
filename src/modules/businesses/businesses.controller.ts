@@ -39,27 +39,27 @@ import {
 @Controller('businesses')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class BusinessesController {
-  constructor(private readonly businessesService: BusinessesService) {}
+  constructor(private readonly businessesService: BusinessesService) { }
 
   @Post()
   @Roles(UserRole.SUPER_ADMIN)
   @ApiOperation({
-    summary: '1. Register New Business Tenant & Manager',
+    summary: '1. Register New Business Tenant & Supervisor (Owner)',
     description:
-      'Create a new restaurant business tenant along with its initial Manager account and enabled employee operational roles.\n\n🔒 **Allowed Roles**: `SUPER_ADMIN`',
+      'Create a new restaurant business tenant along with its initial Supervisor / Owner account and enabled employee operational roles.\n\n🔒 **Allowed Roles**: `SUPER_ADMIN`',
   })
   @ApiBody({
     type: CreateBusinessDto,
-    description: 'Business registration details, manager credentials, and role selections',
+    description: 'Business registration details, supervisor credentials, and role selections',
     examples: {
       default: {
-        summary: 'Demo Data - Register New Restaurant Tenant',
+        summary: 'Demo Data - Register New Restaurant Tenant with Supervisor',
         value: {
           businessName: 'Foodies Hub Restaurant',
           subscriptionFee: '99.99',
-          managerEmail: 'manager@foodieshub.com',
-          managerPin: '1234',
-          allowedRoles: ['manager', 'server', 'cashier', 'kitchen'],
+          supervisorEmail: 'supervisor@foodieshub.com',
+          supervisorPin: '1234',
+          allowedRoles: ['supervisor', 'manager', 'server', 'cashier', 'kitchen'],
           phone: '+1234567890',
           address: '123 Main Street, City',
         },
