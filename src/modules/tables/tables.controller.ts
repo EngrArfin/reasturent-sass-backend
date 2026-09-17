@@ -85,7 +85,9 @@ export class TablesController {
   )
   @ApiOperation({
     summary: 'Get Table Summary Counts',
-    description: 'Get total, occupied, available, and reserved table counts.',
+    description:
+      'Get total, occupied, available, and reserved table counts.\n\n' +
+      '🔒 **Allowed Roles**: `MANAGER`, `SUPERVISOR`, `SUPER_ADMIN`, `SERVER`, `CASHIER`',
   })
   @ApiQuery({ name: 'businessId', required: false, description: 'Optional business ID for Super Admin' })
   @ApiResponse({ status: 200, description: 'Table metrics summary' })
@@ -101,7 +103,12 @@ export class TablesController {
     UserRole.SERVER,
     UserRole.CASHIER,
   )
-  @ApiOperation({ summary: 'Get Table Details' })
+  @ApiOperation({
+    summary: 'Get Table Details',
+    description:
+      'Retrieve details for a single dining table.\n\n' +
+      '🔒 **Allowed Roles**: `MANAGER`, `SUPERVISOR`, `SUPER_ADMIN`, `SERVER`, `CASHIER`',
+  })
   @ApiParam({ name: 'id', description: 'Table UUID or ID' })
   @ApiResponse({ status: 200, description: 'Table details' })
   @ApiResponse({ status: 404, description: 'Table not found' })
@@ -113,7 +120,9 @@ export class TablesController {
   @Roles(UserRole.MANAGER, UserRole.SUPERVISOR, UserRole.SUPER_ADMIN, UserRole.SERVER)
   @ApiOperation({
     summary: 'Update Table Information / Status',
-    description: 'Update table capacity, section, or change status (AVAILABLE, OCCUPIED, RESERVED).',
+    description:
+      'Update table capacity, section, or change status (AVAILABLE, OCCUPIED, RESERVED).\n\n' +
+      '🔒 **Allowed Roles**: `MANAGER`, `SUPERVISOR`, `SUPER_ADMIN`, `SERVER`',
   })
   @ApiParam({ name: 'id', description: 'Table UUID or ID' })
   @ApiResponse({ status: 200, description: 'Table updated successfully' })
@@ -129,7 +138,12 @@ export class TablesController {
   @Delete(':id')
   @Roles(UserRole.MANAGER, UserRole.SUPERVISOR, UserRole.SUPER_ADMIN)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Delete Floor Table' })
+  @ApiOperation({
+    summary: 'Delete Floor Table',
+    description:
+      'Permanently delete a dining table from the restaurant floor map.\n\n' +
+      '🔒 **Allowed Roles**: `MANAGER`, `SUPERVISOR`, `SUPER_ADMIN`',
+  })
   @ApiParam({ name: 'id', description: 'Table UUID or ID' })
   @ApiResponse({ status: 200, description: 'Table deleted successfully' })
   @ApiResponse({ status: 404, description: 'Table not found' })

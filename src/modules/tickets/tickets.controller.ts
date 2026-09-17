@@ -113,12 +113,12 @@ export class TicketsController {
   }
 
   @Patch(':id/status')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.MANAGER)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.SUPERVISOR, UserRole.MANAGER)
   @ApiOperation({
     summary: 'Update Ticket Status (e.g. RESOLVED, CLOSED)',
     description:
       'Update the status of a ticket.\n\n' +
-      '🔒 **Allowed Roles**: `SUPER_ADMIN`, `MANAGER`',
+      '🔒 **Allowed Roles**: `SUPER_ADMIN`, `SUPERVISOR`, `MANAGER`',
   })
   @ApiParam({ name: 'id', description: 'Ticket UUID' })
   @ApiBody({
@@ -144,12 +144,12 @@ export class TicketsController {
   }
 
   @Patch(':id')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.MANAGER)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.SUPERVISOR, UserRole.MANAGER)
   @ApiOperation({
     summary: 'Update Support Ticket',
     description:
       'Modify ticket information or priority.\n\n' +
-      '🔒 **Allowed Roles**: `SUPER_ADMIN`, `MANAGER`',
+      '🔒 **Allowed Roles**: `SUPER_ADMIN`, `SUPERVISOR`, `MANAGER`',
   })
   @ApiParam({ name: 'id', description: 'Ticket UUID' })
   @ApiBody({ type: UpdateTicketDto })

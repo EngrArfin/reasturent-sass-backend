@@ -85,7 +85,12 @@ export class MenuItemsController {
     UserRole.CASHIER,
     UserRole.KITCHEN,
   )
-  @ApiOperation({ summary: 'Get Menu Dish Categories' })
+  @ApiOperation({
+    summary: 'Get Menu Dish Categories',
+    description:
+      'Retrieve all menu dish categories and item counts.\n\n' +
+      '🔒 **Allowed Roles**: `MANAGER`, `SUPERVISOR`, `SUPER_ADMIN`, `SERVER`, `CASHIER`, `KITCHEN`',
+  })
   @ApiQuery({ name: 'businessId', required: false, description: 'Optional business ID for Super Admin' })
   @ApiResponse({ status: 200, description: 'Category list and item counts' })
   getCategories(@CurrentUser() user: any, @Query('businessId') businessId?: string) {
@@ -101,7 +106,12 @@ export class MenuItemsController {
     UserRole.CASHIER,
     UserRole.KITCHEN,
   )
-  @ApiOperation({ summary: 'Get Single Menu Item Dish' })
+  @ApiOperation({
+    summary: 'Get Single Menu Item Dish',
+    description:
+      'Retrieve details for a single menu dish item by ID.\n\n' +
+      '🔒 **Allowed Roles**: `MANAGER`, `SUPERVISOR`, `SUPER_ADMIN`, `SERVER`, `CASHIER`, `KITCHEN`',
+  })
   @ApiParam({ name: 'id', description: 'Menu item UUID' })
   @ApiResponse({ status: 200, description: 'Menu item details' })
   @ApiResponse({ status: 404, description: 'Menu item not found' })
@@ -111,7 +121,12 @@ export class MenuItemsController {
 
   @Patch(':id')
   @Roles(UserRole.MANAGER, UserRole.SUPERVISOR, UserRole.SUPER_ADMIN)
-  @ApiOperation({ summary: 'Update Menu Item Dish' })
+  @ApiOperation({
+    summary: 'Update Menu Item Dish',
+    description:
+      'Modify menu dish name, price, description, category, or photo.\n\n' +
+      '🔒 **Allowed Roles**: `MANAGER`, `SUPERVISOR`, `SUPER_ADMIN`',
+  })
   @ApiParam({ name: 'id', description: 'Menu item UUID' })
   @ApiResponse({ status: 200, description: 'Menu item updated successfully' })
   @ApiResponse({ status: 404, description: 'Menu item not found' })
@@ -125,7 +140,12 @@ export class MenuItemsController {
 
   @Patch(':id/toggle-availability')
   @Roles(UserRole.MANAGER, UserRole.SUPERVISOR, UserRole.SUPER_ADMIN, UserRole.KITCHEN)
-  @ApiOperation({ summary: 'Toggle Dish Availability (In Stock / Out of Stock)' })
+  @ApiOperation({
+    summary: 'Toggle Dish Availability (In Stock / Out of Stock)',
+    description:
+      'Quickly toggle dish availability on or off for POS & waiter ordering.\n\n' +
+      '🔒 **Allowed Roles**: `MANAGER`, `SUPERVISOR`, `SUPER_ADMIN`, `KITCHEN`',
+  })
   @ApiParam({ name: 'id', description: 'Menu item UUID' })
   @ApiResponse({ status: 200, description: 'Availability status toggled' })
   toggleAvailability(@Param('id') id: string, @CurrentUser() user: any) {
@@ -135,7 +155,12 @@ export class MenuItemsController {
   @Delete(':id')
   @Roles(UserRole.MANAGER, UserRole.SUPERVISOR, UserRole.SUPER_ADMIN)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Delete Menu Item Dish' })
+  @ApiOperation({
+    summary: 'Delete Menu Item Dish',
+    description:
+      'Permanently remove a dish from the menu catalog.\n\n' +
+      '🔒 **Allowed Roles**: `MANAGER`, `SUPERVISOR`, `SUPER_ADMIN`',
+  })
   @ApiParam({ name: 'id', description: 'Menu item UUID' })
   @ApiResponse({ status: 200, description: 'Menu item deleted successfully' })
   @ApiResponse({ status: 404, description: 'Menu item not found' })

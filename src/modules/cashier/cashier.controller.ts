@@ -91,7 +91,9 @@ export class CashierController {
   )
   @ApiOperation({
     summary: 'Get Table Bill Details',
-    description: 'Retrieves active order items, subtotal, and bill for a specific table station before checkout.',
+    description:
+      'Retrieves active order items, subtotal, and bill for a specific table station before checkout.\n\n' +
+      '🔒 **Allowed Roles**: `CASHIER`, `MANAGER`, `SUPERVISOR`, `SUPER_ADMIN`',
   })
   @ApiParam({ name: 'tableId', description: 'Table ID or Table Number', example: '1' })
   @ApiResponse({ status: 200, description: 'Table active order and bill breakdown' })

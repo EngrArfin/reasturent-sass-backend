@@ -35,7 +35,7 @@ import { UserRole } from '../../enums/user-role.enum';
 @Controller('orders')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class OrdersController {
-  constructor(private readonly ordersService: OrdersService) {}
+  constructor(private readonly ordersService: OrdersService) { }
 
   @Post()
   @Roles(
@@ -92,7 +92,12 @@ export class OrdersController {
     UserRole.CASHIER,
     UserRole.KITCHEN,
   )
-  @ApiOperation({ summary: 'Get Order Metrics Summary' })
+  @ApiOperation({
+    summary: 'Get Order Metrics Summary',
+    description:
+      'Retrieve summary metrics of orders (e.g. pending, preparing, served, completed).\n\n' +
+      '🔒 **Allowed Roles**: `MANAGER`, `SUPERVISOR`, `SUPER_ADMIN`, `SERVER`, `CASHIER`, `KITCHEN`',
+  })
   @ApiQuery({ name: 'businessId', required: false, description: 'Optional business ID for Super Admin' })
   @ApiResponse({ status: 200, description: 'Order summary counts by status' })
   getSummary(@CurrentUser() user: any, @Query('businessId') businessId?: string) {
@@ -108,7 +113,12 @@ export class OrdersController {
     UserRole.CASHIER,
     UserRole.KITCHEN,
   )
-  @ApiOperation({ summary: 'Get Order Details' })
+  @ApiOperation({
+    summary: 'Get Order Details',
+    description:
+      'Retrieve details for a single order by ID.\n\n' +
+      '🔒 **Allowed Roles**: `MANAGER`, `SUPERVISOR`, `SUPER_ADMIN`, `SERVER`, `CASHIER`, `KITCHEN`',
+  })
   @ApiParam({ name: 'id', description: 'Order UUID' })
   @ApiResponse({ status: 200, description: 'Order details with items and table' })
   @ApiResponse({ status: 404, description: 'Order not found' })
@@ -150,7 +160,12 @@ export class OrdersController {
     UserRole.SERVER,
     UserRole.CASHIER,
   )
-  @ApiOperation({ summary: 'Update Order Details / Items' })
+  @ApiOperation({
+    summary: 'Update Order Details / Items',
+    description:
+      'Modify order items, quantities, or instructions.\n\n' +
+      '🔒 **Allowed Roles**: `MANAGER`, `SUPERVISOR`, `SUPER_ADMIN`, `SERVER`, `CASHIER`',
+  })
   @ApiParam({ name: 'id', description: 'Order UUID' })
   @ApiResponse({ status: 200, description: 'Order updated successfully' })
   update(
@@ -164,7 +179,12 @@ export class OrdersController {
   @Delete(':id')
   @Roles(UserRole.MANAGER, UserRole.SUPERVISOR, UserRole.SUPER_ADMIN)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Cancel & Delete Order' })
+  @ApiOperation({
+    summary: 'Cancel & Delete Order',
+    description:
+      'Permanently remove or cancel an order.\n\n' +
+      '🔒 **Allowed Roles**: `MANAGER`, `SUPERVISOR`, `SUPER_ADMIN`',
+  })
   @ApiParam({ name: 'id', description: 'Order UUID' })
   @ApiResponse({ status: 200, description: 'Order deleted successfully' })
   remove(@Param('id') id: string, @CurrentUser() user: any) {

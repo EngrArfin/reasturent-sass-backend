@@ -106,10 +106,10 @@ export class VouchersController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
-  @Roles(UserRole.MANAGER, UserRole.SUPER_ADMIN)
+  @Roles(UserRole.MANAGER, UserRole.SUPERVISOR, UserRole.SUPER_ADMIN)
   @ApiOperation({
     summary: 'Delete Voucher',
-    description: 'Permanently remove a voucher.\n\n🔒 **Allowed Roles**: `MANAGER`, `SUPER_ADMIN`',
+    description: 'Permanently remove a voucher.\n\n🔒 **Allowed Roles**: `MANAGER`, `SUPERVISOR`, `SUPER_ADMIN`',
   })
   @ApiParam({ name: 'id', description: 'Voucher UUID' })
   @ApiResponse({ status: 200, description: 'Voucher deleted successfully' })

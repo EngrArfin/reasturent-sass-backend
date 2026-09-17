@@ -245,13 +245,13 @@ export class ProductsController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.MANAGER, UserRole.SUPER_ADMIN)
+  @Roles(UserRole.MANAGER, UserRole.SUPERVISOR, UserRole.SUPER_ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Delete Product',
     description:
       'Permanently remove a product from the restaurant inventory.\n\n' +
-      '🔒 **Allowed Roles**: `MANAGER`, `SUPER_ADMIN`',
+      '🔒 **Allowed Roles**: `MANAGER`, `SUPERVISOR`, `SUPER_ADMIN`',
   })
   @ApiParam({ name: 'id', description: 'Product UUID' })
   @ApiResponse({ status: 200, description: 'Product deleted successfully' })

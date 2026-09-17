@@ -43,7 +43,9 @@ export class ServeController {
   )
   @ApiOperation({
     summary: 'Get Table Map',
-    description: 'Fetch all restaurant floor tables with real-time status and occupancy indicators.',
+    description:
+      'Fetch all restaurant floor tables with real-time status and occupancy indicators.\n\n' +
+      '🔒 **Allowed Roles**: `SERVER`, `MANAGER`, `SUPERVISOR`, `SUPER_ADMIN`, `CASHIER`',
   })
   @ApiResponse({ status: 200, description: 'List of floor tables with summary' })
   getTableMap(@CurrentUser() user: any) {
@@ -59,7 +61,9 @@ export class ServeController {
   )
   @ApiOperation({
     summary: 'Update Table Status',
-    description: 'Change table status (AVAILABLE, OCCUPIED, RESERVED) directly from the floor map.',
+    description:
+      'Change table status (AVAILABLE, OCCUPIED, RESERVED) directly from the floor map.\n\n' +
+      '🔒 **Allowed Roles**: `SERVER`, `MANAGER`, `SUPERVISOR`, `SUPER_ADMIN`',
   })
   @ApiParam({ name: 'id', description: 'Table UUID or ID' })
   @ApiResponse({ status: 200, description: 'Table status updated' })
@@ -81,7 +85,9 @@ export class ServeController {
   )
   @ApiOperation({
     summary: 'Get Menu Dishes For Ordering',
-    description: 'Fetch all available menu items for the table ordering modal.',
+    description:
+      'Fetch all available menu items for the table ordering modal.\n\n' +
+      '🔒 **Allowed Roles**: `SERVER`, `MANAGER`, `SUPERVISOR`, `SUPER_ADMIN`, `CASHIER`',
   })
   @ApiResponse({ status: 200, description: 'List of available menu dishes' })
   getMenuItems(@CurrentUser() user: any) {
@@ -98,7 +104,9 @@ export class ServeController {
   )
   @ApiOperation({
     summary: 'Send Order to Kitchen',
-    description: 'Creates an order ticket with selected items, dietary tags, and auto marks table as OCCUPIED.',
+    description:
+      'Creates an order ticket with selected items, dietary tags, and auto marks table as OCCUPIED.\n\n' +
+      '🔒 **Allowed Roles**: `SERVER`, `MANAGER`, `SUPERVISOR`, `SUPER_ADMIN`, `CASHIER`',
   })
   @ApiResponse({ status: 201, description: 'Order sent to kitchen' })
   sendOrderToKitchen(
@@ -119,7 +127,9 @@ export class ServeController {
   )
   @ApiOperation({
     summary: 'Get Table Order Status List',
-    description: 'Fetch active order tickets with time, dietary notes, and status.',
+    description:
+      'Fetch active order tickets with time, dietary notes, and status.\n\n' +
+      '🔒 **Allowed Roles**: `SERVER`, `MANAGER`, `SUPERVISOR`, `SUPER_ADMIN`, `CASHIER`, `KITCHEN`',
   })
   @ApiQuery({ name: 'status', required: false, description: 'Optional status filter (ALL, PENDING, PREPARING, READY, SERVED, CANCELLED)' })
   @ApiResponse({ status: 200, description: 'List of order tickets' })
@@ -140,7 +150,9 @@ export class ServeController {
   )
   @ApiOperation({
     summary: 'Update Order Ticket Status',
-    description: 'Update ticket status (Confirmed, In Kitchen, Ready to Serve, Served, Cancelled).',
+    description:
+      'Update ticket status (Confirmed, In Kitchen, Ready to Serve, Served, Cancelled).\n\n' +
+      '🔒 **Allowed Roles**: `SERVER`, `MANAGER`, `SUPERVISOR`, `SUPER_ADMIN`, `KITCHEN`',
   })
   @ApiParam({ name: 'id', description: 'Order UUID' })
   @ApiResponse({ status: 200, description: 'Order ticket status updated' })

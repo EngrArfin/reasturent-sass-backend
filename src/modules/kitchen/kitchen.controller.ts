@@ -46,7 +46,8 @@ export class KitchenController {
   @ApiOperation({
     summary: 'Get Kitchen KPI Summary Metrics',
     description:
-      'Fetches live kitchen KPIs: Completed Today (count & growth), Avg Prep Time, and Station Capacity Alert (Grill operating load).',
+      'Fetches live kitchen KPIs: Completed Today (count & growth), Avg Prep Time, and Station Capacity Alert (Grill operating load).\n\n' +
+      '🔒 **Allowed Roles**: `KITCHEN`, `MANAGER`, `SUPERVISOR`, `SUPER_ADMIN`, `SERVER`',
   })
   @ApiQuery({ name: 'businessId', required: false, description: 'Optional business ID for Super Admin' })
   @ApiResponse({ status: 200, description: 'Kitchen summary metrics' })
@@ -65,7 +66,8 @@ export class KitchenController {
   @ApiOperation({
     summary: 'Get Kitchen Live Tickets Stream',
     description:
-      'Fetch active or completed kitchen tickets formatted with table tokens, station tags, in-time, item modifiers, and bump action states.',
+      'Fetch active or completed kitchen tickets formatted with table tokens, station tags, in-time, item modifiers, and bump action states.\n\n' +
+      '🔒 **Allowed Roles**: `KITCHEN`, `MANAGER`, `SUPERVISOR`, `SUPER_ADMIN`, `SERVER`',
   })
   @ApiResponse({ status: 200, description: 'Kitchen tickets stream' })
   getTickets(
@@ -86,7 +88,8 @@ export class KitchenController {
   @ApiOperation({
     summary: 'Bump Ticket Status (Bump To Ready / Complete)',
     description:
-      'Bumps ticket to the next stage (PREPARING -> READY -> COMPLETED) and automatically updates table sub-status.',
+      'Bumps ticket to the next stage (PREPARING -> READY -> COMPLETED) and automatically updates table sub-status.\n\n' +
+      '🔒 **Allowed Roles**: `KITCHEN`, `MANAGER`, `SUPERVISOR`, `SUPER_ADMIN`, `SERVER`',
   })
   @ApiParam({ name: 'id', description: 'Order / Ticket UUID' })
   @ApiResponse({ status: 200, description: 'Ticket bumped successfully' })
@@ -108,7 +111,9 @@ export class KitchenController {
   )
   @ApiOperation({
     summary: 'Create Manual Kitchen Ticket (+ New Ticket)',
-    description: 'Manually dispatch a ticket to the kitchen display stream.',
+    description:
+      'Manually dispatch a ticket to the kitchen display stream.\n\n' +
+      '🔒 **Allowed Roles**: `KITCHEN`, `MANAGER`, `SUPERVISOR`, `SUPER_ADMIN`, `SERVER`',
   })
   @ApiResponse({ status: 201, description: 'Kitchen ticket created' })
   createTicket(
