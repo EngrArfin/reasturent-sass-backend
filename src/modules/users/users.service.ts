@@ -69,7 +69,7 @@ export class UsersService {
 
   private sanitizeUser(user: any) {
     const { password, pin, ...rest } = user;
-    const isApproved = user.isActive !== false;
+    const isApproved = user.isActive === true;
     const status = isApproved ? 'APPROVED' : 'PENDING';
     const approvalStatus = isApproved ? 'Approved (Can Login)' : 'Pending Acceptance';
 
@@ -82,17 +82,25 @@ export class UsersService {
       super_admin: 'System Administration',
     };
     const department = user.department || departmentMap[user.role] || 'Restaurant Operations';
+    const roleCapitalized = user.role
+      ? user.role.charAt(0).toUpperCase() + user.role.slice(1).toLowerCase()
+      : 'Staff';
 
     return {
       ...rest,
+      role: roleCapitalized,
+      systemRole: user.role,
       status,
       approvalStatus,
       isApproved,
       isActive: user.isActive,
       department,
       hasPin: !!pin,
-      pin: pin ? '****' : null,
-      accessPin: pin ? 'PIN: **** (Active)' : null,
+      pin: pin && pin.length === 4 ? pin : '1234',
+      accessPin: 'PIN: 1234',
+      requestedAt: user.createdAt
+        ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        : 'Today',
       avatar:
         user.avatar ||
         `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user.name || 'User')}`,
