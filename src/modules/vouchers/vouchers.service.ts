@@ -11,7 +11,7 @@ import { UserRole } from '../../enums/user-role.enum';
 
 @Injectable()
 export class VouchersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   private getEffectiveBusinessId(user: any, requestedBusinessId?: string, isRequired = false): string | undefined {
     if (user.role === UserRole.SUPER_ADMIN) {
@@ -62,11 +62,15 @@ export class VouchersService {
     const amountOff = voucher.amountOff || 0;
     const finalPrice = voucher.finalPrice ?? Math.max(0, minPrice - amountOff);
     const requestedBy = (voucher.requestedBy || 'MANAGER').toUpperCase();
+    const isExpired = voucher.expiresAt ? new Date(voucher.expiresAt) < new Date() : false;
+    const status = !isExpired && voucher.isActive ? 'Active' : 'Expired';
+    const businessName = voucher.business?.businessName || voucher.business?.name || 'All';
 
     return {
       id: voucher.id,
       name: voucher.name,
       code: voucher.code,
+      subscriptionCode: voucher.code,
       minimumPrice: minPrice,
       offPrice: voucher.offPrice,
       amountOff: amountOff,
@@ -77,7 +81,20 @@ export class VouchersService {
       discountFormatted: `-$${amountOff.toFixed(2)}`,
       finalFormatted: `$${finalPrice.toFixed(2)}`,
       isActive: voucher.isActive,
+      isUsed: voucher.isUsed ?? false,
+      usage: voucher.isUsed ? 'Used' : 'Unused',
+      expiresAt: voucher.expiresAt,
+      expiryDate: voucher.expiresAt ? new Date(voucher.expiresAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Never',
+      status,
       businessId: voucher.businessId,
+      businessName,
+      business: voucher.business
+        ? {
+          id: voucher.business.id,
+          businessName: voucher.business.businessName || voucher.business.name,
+          name: voucher.business.name,
+        }
+        : undefined,
       createdAt: voucher.createdAt,
       updatedAt: voucher.updatedAt,
     };
@@ -108,6 +125,8 @@ export class VouchersService {
       code = `VOUCH-${cleanName || 'DISC'}-${rand}`;
     }
 
+    const expiresAt = createVoucherDto.expiresAt ? new Date(createVoucherDto.expiresAt) : null;
+
     const voucher = await this.prisma.voucher.create({
       data: {
         name: createVoucherDto.name.trim(),
@@ -118,7 +137,18 @@ export class VouchersService {
         finalPrice: pricing.finalPrice,
         requestedBy,
         businessId,
+        expiresAt,
+        isUsed: createVoucherDto.isUsed ?? false,
         isActive: true,
+      },
+      include: {
+        business: {
+          select: {
+            id: true,
+            businessName: true,
+            name: true,
+          },
+        },
       },
     });
 
@@ -139,11 +169,28 @@ export class VouchersService {
         { name: { contains: q, mode: 'insensitive' } },
         { code: { contains: q, mode: 'insensitive' } },
         { requestedBy: { contains: q, mode: 'insensitive' } },
+        {
+          business: {
+            OR: [
+              { businessName: { contains: q, mode: 'insensitive' } },
+              { name: { contains: q, mode: 'insensitive' } },
+            ],
+          },
+        },
       ];
     }
 
     const vouchers = await this.prisma.voucher.findMany({
       where,
+      include: {
+        business: {
+          select: {
+            id: true,
+            businessName: true,
+            name: true,
+          },
+        },
+      },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -153,6 +200,15 @@ export class VouchersService {
   async findOne(id: string, user: any) {
     const voucher = await this.prisma.voucher.findUnique({
       where: { id },
+      include: {
+        business: {
+          select: {
+            id: true,
+            businessName: true,
+            name: true,
+          },
+        },
+      },
     });
 
     if (!voucher) {

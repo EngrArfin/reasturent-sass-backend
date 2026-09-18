@@ -1,19 +1,29 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsNumber, IsBoolean, IsOptional } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class CreateSubscriptionPlanDto {
   @ApiProperty({
-    example: 'Monthly Plan',
-    description: 'Name of the subscription plan',
+    example: 'Yearly Plan',
+    description: 'Unique name of the subscription plan',
   })
   @IsString()
   name!: string;
 
   @ApiProperty({
-    example: 'monthly',
-    description: 'Type of the subscription plan (free, monthly, yearly)',
+    example: 'YEARLY',
+    description: 'Type / billing cycle of the subscription plan',
+    enum: ['FREE', 'MONTHLY', 'YEARLY'],
   })
   @IsString()
+  @Transform(({ value }) => {
+    if (!value || typeof value !== 'string') return value;
+    const v = value.trim().toUpperCase();
+    if (v === 'YEAR' || v === 'YEARLY') return 'YEARLY';
+    if (v === 'MONTH' || v === 'MONTHLY') return 'MONTHLY';
+    if (v === 'FREE') return 'FREE';
+    return v;
+  })
   type!: string;
 
   @ApiProperty({

@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsBoolean } from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class CreateVoucherDto {
@@ -47,6 +47,22 @@ export class CreateVoucherDto {
   @IsOptional()
   @IsString()
   code?: string;
+
+  @ApiPropertyOptional({
+    example: '2029-06-15T06:27:00.000Z',
+    description: 'Expiry date and time for the voucher',
+  })
+  @IsOptional()
+  expiresAt?: Date | string;
+
+  @ApiPropertyOptional({
+    example: false,
+    description: 'Whether the voucher has already been used',
+    default: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isUsed?: boolean;
 
   @ApiPropertyOptional({
     example: 'd8c7c975-d1fb-4813-9ec8-f1f4b23267f5',
