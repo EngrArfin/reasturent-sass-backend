@@ -5,6 +5,7 @@ import {
   MaxLength,
   IsOptional,
   Matches,
+  IsBoolean,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
@@ -68,4 +69,28 @@ export class CreateUserDto {
   @IsOptional()
   @IsString()
   businessId?: string;
+
+  @ApiPropertyOptional({
+    example: 'PENDING',
+    description: 'Approval status (e.g. PENDING, APPROVED)',
+  })
+  @IsOptional()
+  @IsString()
+  status?: string;
+
+  @ApiPropertyOptional({
+    example: false,
+    description: 'Approval boolean flag',
+  })
+  @IsOptional()
+  @IsBoolean()
+  isApproved?: boolean;
+
+  @ApiPropertyOptional({
+    example: false,
+    description: 'Whether the employee is active / approved',
+  })
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
 }

@@ -4,6 +4,7 @@ import {
   ConflictException,
   UnauthorizedException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -161,6 +162,28 @@ export class UsersService {
 
     const userRole = this.normalizeRole(createUserDto.role);
 
+    const currentRole = currentUser?.role?.toLowerCase();
+    const isManager = currentRole === AppUserRole.MANAGER;
+
+    // 1. Manager cannot create Supervisor accounts
+    if (isManager && userRole === UserRole.supervisor) {
+      throw new ForbiddenException('Managers are not permitted to create Supervisor accounts');
+    }
+
+    // 2. Manager created employee always requires Supervisor approval (isActive = false / PENDING),
+    //    Supervisor or Super Admin created employee defaults to active (isActive = true)
+    let isActive = !isManager;
+    if (!isManager) {
+      if (createUserDto.isActive !== undefined) {
+        isActive = !!createUserDto.isActive;
+      } else if (createUserDto.isApproved !== undefined) {
+        isActive = !!createUserDto.isApproved;
+      } else if (createUserDto.status) {
+        const s = createUserDto.status.trim().toUpperCase();
+        isActive = s === 'APPROVED' || s === 'ACTIVE';
+      }
+    }
+
     const user = await this.prisma.user.create({
       data: {
         name: createUserDto.name.trim(),
@@ -170,7 +193,7 @@ export class UsersService {
         businessId: businessId || null,
         pin: hashedPin,
         avatar: createUserDto.avatar || null,
-        isActive: true,
+        isActive,
       },
     });
 
@@ -271,6 +294,19 @@ export class UsersService {
       throw new UnauthorizedException('You can only update employees from your own business');
     }
 
+    const currentRole = currentUser?.role?.toLowerCase();
+    const isManager = currentRole === AppUserRole.MANAGER;
+
+    // Manager cannot edit or update Supervisor accounts
+    if (isManager && existing.role === UserRole.supervisor) {
+      throw new ForbiddenException('Managers are not permitted to edit or update Supervisor accounts');
+    }
+
+    // Manager cannot assign the Supervisor role
+    if (isManager && updateUserDto.role && this.normalizeRole(updateUserDto.role) === UserRole.supervisor) {
+      throw new ForbiddenException('Managers cannot assign the Supervisor role');
+    }
+
     const dataToUpdate: any = {};
 
     if (updateUserDto.name !== undefined) {
@@ -336,6 +372,14 @@ export class UsersService {
       throw new UnauthorizedException('You can only delete employees from your own business');
     }
 
+    const currentRole = currentUser?.role?.toLowerCase();
+    const isManager = currentRole === AppUserRole.MANAGER;
+
+    // Manager cannot delete Supervisor accounts
+    if (isManager && existing.role === UserRole.supervisor) {
+      throw new ForbiddenException('Managers are not permitted to delete Supervisor accounts');
+    }
+
     if (currentUser && (currentUser.userId === id || currentUser.id === id)) {
       throw new BadRequestException('You cannot delete your own manager account');
     }
@@ -364,19 +408,27 @@ export class UsersService {
       throw new NotFoundException(`User with ID '${userId}' not found`);
     }
 
-    if (
-      currentUser.role !== AppUserRole.SUPER_ADMIN &&
-      currentUser.role !== AppUserRole.MANAGER &&
-      currentUser.userId !== userId
-    ) {
+    const role = currentUser?.role?.toLowerCase();
+    const isSuperAdmin = role === AppUserRole.SUPER_ADMIN;
+    const isManager = role === AppUserRole.MANAGER;
+    const isManagerOrSupervisor =
+      role === AppUserRole.MANAGER || role === AppUserRole.SUPERVISOR;
+    const isSelf = (currentUser?.userId || currentUser?.id) === userId;
+
+    if (!isSuperAdmin && !isManagerOrSupervisor && !isSelf) {
       throw new UnauthorizedException("You cannot change this user's PIN");
     }
 
     if (
-      currentUser.role === AppUserRole.MANAGER &&
+      isManagerOrSupervisor &&
       targetUser.businessId !== currentUser.businessId
     ) {
       throw new UnauthorizedException('You can only modify PINs for employees in your restaurant');
+    }
+
+    // Manager cannot change PIN of Supervisor accounts
+    if (isManager && targetUser.role === UserRole.supervisor) {
+      throw new ForbiddenException('Managers are not permitted to change PIN for Supervisor accounts');
     }
 
     const hashedPin = await bcrypt.hash(newPin.trim(), 10);

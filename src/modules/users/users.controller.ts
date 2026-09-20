@@ -18,6 +18,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateApprovalStatusDto } from './dto/update-approval-status.dto';
+import { ChangePinDto } from './dto/change-pin.dto';
 import { UsersService } from './users.service';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -177,13 +178,14 @@ export class UsersController {
       '🔒 **Allowed Roles**: `SUPERVISOR`, `MANAGER`, `SUPER_ADMIN`',
   })
   @ApiParam({ name: 'id', description: 'Employee UUID' })
+  @ApiBody({ type: ChangePinDto })
   @ApiResponse({ status: 200, description: 'PIN updated successfully' })
   @ApiResponse({ status: 400, description: 'Invalid PIN format (must be 4 digits)' })
   changePin(
     @Param('id') id: string,
-    @Body('pin') pin: string,
+    @Body() changePinDto: ChangePinDto,
     @CurrentUser() user: any,
   ) {
-    return this.usersService.changePin(id, pin, user);
+    return this.usersService.changePin(id, changePinDto?.pin, user);
   }
 }
