@@ -17,6 +17,7 @@ import { UserRole } from '../../enums/user-role.enum';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateApprovalStatusDto } from './dto/update-approval-status.dto';
 import { UsersService } from './users.service';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -28,6 +29,7 @@ import {
   ApiResponse,
   ApiQuery,
   ApiParam,
+  ApiBody,
 } from '@nestjs/swagger';
 
 @ApiTags('Manager - Employees Management')
@@ -121,13 +123,14 @@ export class UsersController {
       '🔒 **Allowed Roles**: `SUPERVISOR`, `SUPER_ADMIN`',
   })
   @ApiParam({ name: 'id', description: 'Employee UUID' })
+  @ApiBody({ type: UpdateApprovalStatusDto, required: false })
   @ApiResponse({ status: 200, description: 'Approval status updated' })
   updateApprovalStatus(
     @Param('id') id: string,
-    @Body() body: { status?: string; isApproved?: boolean; isActive?: boolean },
+    @Body() body: UpdateApprovalStatusDto,
     @CurrentUser() user: any,
   ) {
-    return this.usersService.updateApprovalStatus(id, body, user);
+    return this.usersService.updateApprovalStatus(id, body || {}, user);
   }
 
   @Patch(':id')

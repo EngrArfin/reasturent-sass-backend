@@ -10,6 +10,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { UserRole } from '@prisma/client';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateApprovalStatusDto } from './dto/update-approval-status.dto';
 import { UserRole as AppUserRole } from '../../enums/user-role.enum';
 
 @Injectable()
@@ -453,7 +454,7 @@ export class UsersService {
 
   async updateApprovalStatus(
     userId: string,
-    statusOrApproved: { status?: string; isApproved?: boolean; isActive?: boolean },
+    statusOrApproved: UpdateApprovalStatusDto = {},
     currentUser: any,
   ) {
     const targetUser = await this.prisma.user.findUnique({
@@ -472,7 +473,7 @@ export class UsersService {
     }
 
     let nextIsActive = true;
-    if (statusOrApproved.status) {
+    if (statusOrApproved?.status) {
       const s = statusOrApproved.status.trim().toUpperCase();
       if (s === 'APPROVED' || s === 'ACCEPT' || s === 'ACCEPT & APPROVE' || s === 'ACTIVE') {
         nextIsActive = true;
@@ -481,9 +482,9 @@ export class UsersService {
       } else {
         nextIsActive = true;
       }
-    } else if (statusOrApproved.isApproved !== undefined) {
+    } else if (statusOrApproved?.isApproved !== undefined) {
       nextIsActive = !!statusOrApproved.isApproved;
-    } else if (statusOrApproved.isActive !== undefined) {
+    } else if (statusOrApproved?.isActive !== undefined) {
       nextIsActive = !!statusOrApproved.isActive;
     }
 
