@@ -14,7 +14,7 @@ import { UserRole as AppUserRole } from '../../enums/user-role.enum';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   private getEffectiveBusinessId(
     currentUser?: any,
