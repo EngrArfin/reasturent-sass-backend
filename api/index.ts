@@ -51,8 +51,8 @@ async function bootstrapServer(): Promise<Express> {
   const config = new DocumentBuilder()
     .setTitle('Restaurant SaaS API')
     .setDescription('REST API Documentation for Restaurant SaaS Platform')
-    .setVersion('1.0')
-    .addTag('Auth', 'Authentication & User Profile Operations')
+    .addTag('Auth & Account Settings', 'Authentication, User Profile, Avatar, Password & PIN Management')
+    .addTag('Manager & Staff - Notifications & Activity Alerts', 'Real-time Activity Alerts, Feed Filters (ALL, UNREAD, SYSTEM, TICKETS, ORDERS) & Notification Preferences')
     .addTag('Admin', 'Super Admin Tenant & Business Management Operations')
     .addTag('Subscription Plans', 'SaaS Pricing & Subscription Tier Management')
     .addTag(
