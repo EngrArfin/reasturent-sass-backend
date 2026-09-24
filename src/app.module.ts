@@ -19,6 +19,7 @@ import { OrdersModule } from './modules/orders/orders.module';
 import { KitchenModule } from './modules/kitchen/kitchen.module';
 import { ServeModule } from './modules/serve/serve.module';
 import { CashierModule } from './modules/cashier/cashier.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { CashierModule } from './modules/cashier/cashier.module';
     KitchenModule,
     ServeModule,
     CashierModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

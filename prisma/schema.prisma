@@ -44,6 +44,7 @@ model Business {
   tables    RestaurantTable[]
   menuItems MenuItem[]
   orders    Order[]
+  notifications Notification[]
 }
 
 model User {
@@ -56,9 +57,34 @@ model User {
   business   Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
   pin        String?
   avatar     String?
+  notificationPreferences Json?
   isActive   Boolean   @default(true)
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
+
+  notifications Notification[]
+}
+
+model Notification {
+  id         String    @id @default(uuid())
+  title      String
+  message    String
+  type       String    @default("SYSTEM") // ALL, SYSTEM, TICKETS, ORDERS, SYNC, INVENTORY
+  category   String?   @default("SYSTEM")
+  isRead     Boolean   @default(false)
+  link       String?
+  userId     String?
+  user       User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessId String?
+  business   Business? @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  metadata   Json?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([businessId])
+  @@index([isRead])
+  @@index([type])
 }
 
 model Voucher {
