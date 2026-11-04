@@ -65,8 +65,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
         case 'P2003': {
           status = HttpStatus.BAD_REQUEST;
           error = 'Foreign Key Violation';
-          message = 'Referenced entity does not exist or relation constraint violated';
-          details = { code: exception.code, field: exception.meta?.field_name };
+          const meta = (exception.meta || {}) as Record<string, any>;
+          const field = (meta.field_name as string) || (meta.target as string) || (meta.modelName ? `${meta.modelName} relation` : null);
+          message = field
+            ? `Referenced entity does not exist or relation constraint violated on: ${field}`
+            : 'Referenced entity does not exist or relation constraint violated';
+          details = { code: exception.code, field: meta.field_name || field, ...meta };
           break;
         }
         case 'P2000': {

@@ -22,8 +22,7 @@ export enum OrderStatusEnum {
 
 export class CreateOrderItemDto {
   @ApiPropertyOptional({
-    description: 'Menu item ID if linking from catalog',
-    example: 'd14f49e2-8df2-4217-9154-1b3ac9201a41',
+    description: 'Menu item ID if linking from catalog (optional: leave blank or omit for custom/off-catalog items)',
   })
   @IsOptional()
   @IsString()

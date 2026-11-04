@@ -59,24 +59,65 @@ export class OrdersService {
   async create(createDto: CreateOrderDto, user: any) {
     const businessId = this.getEffectiveBusinessId(user, createDto.businessId);
 
+    if (user.role === UserRole.SUPER_ADMIN && createDto.businessId) {
+      const business = await this.prisma.business.findUnique({
+        where: { id: businessId },
+      });
+      if (!business) {
+        throw new NotFoundException(`Business with ID "${businessId}" not found`);
+      }
+    }
+
     if (!createDto.items || createDto.items.length === 0) {
       throw new BadRequestException('Order must contain at least one dish or item');
     }
 
-    let tableNumber = createDto.tableNumber;
-    if (createDto.tableId) {
+    const tableId = createDto.tableId?.trim() || null;
+    let tableNumber = createDto.tableNumber?.trim() || null;
+    if (tableId) {
       const table = await this.prisma.restaurantTable.findFirst({
         where: {
-          id: createDto.tableId,
+          id: tableId,
           businessId: businessId!,
           isActive: true,
         },
       });
       if (!table) {
-        throw new NotFoundException(`Table with ID "${createDto.tableId}" not found in this restaurant`);
+        throw new NotFoundException(`Table with ID "${tableId}" not found in this restaurant`);
       }
       if (!tableNumber) {
         tableNumber = `Table #${table.tableNumber}`;
+      }
+    }
+
+    // Validate menuItemId references if provided
+    const requestedMenuItemIds = Array.from(
+      new Set(
+        createDto.items
+          .map((item) => item.menuItemId?.trim())
+          .filter((id): id is string => Boolean(id)),
+      ),
+    );
+
+    if (requestedMenuItemIds.length > 0) {
+      const validMenuItems = await this.prisma.menuItem.findMany({
+        where: {
+          id: { in: requestedMenuItemIds },
+          businessId: businessId!,
+          isActive: true,
+        },
+        select: { id: true, name: true },
+      });
+
+      const validIds = new Set(validMenuItems.map((m) => m.id));
+
+      for (const item of createDto.items) {
+        const mId = item.menuItemId?.trim();
+        if (mId && !validIds.has(mId)) {
+          throw new BadRequestException(
+            `Menu item with ID "${mId}" does not exist in this restaurant. Please provide a valid menuItemId from GET /menu-items, or omit menuItemId for custom items.`,
+          );
+        }
       }
     }
 
@@ -102,20 +143,22 @@ export class OrdersService {
       const total = Number((qty * price).toFixed(2));
       calculatedTotal += total;
 
+      const menuItemId = item.menuItemId?.trim() || null;
+
       return {
-        menuItemId: item.menuItemId || null,
+        menuItemId,
         name,
         quantity: qty,
         unitPrice: price,
         totalPrice: total,
-        notes: item.notes || null,
+        notes: item.notes?.trim() || null,
       };
     });
 
     const order = await this.prisma.order.create({
       data: {
         orderNumber,
-        tableId: createDto.tableId || null,
+        tableId,
         tableNumber: tableNumber || 'Takeaway',
         status: initialStatus as any,
         totalBill: Number(calculatedTotal.toFixed(2)),
@@ -130,9 +173,9 @@ export class OrdersService {
       },
     });
 
-    if (createDto.tableId) {
+    if (tableId) {
       await this.prisma.restaurantTable.update({
-        where: { id: createDto.tableId },
+        where: { id: tableId },
         data: {
           status: 'OCCUPIED' as any,
           subStatus: initialStatus === OrderStatusEnum.SERVED ? 'SERVED' : 'ORDER_PLACED',
@@ -403,6 +446,36 @@ export class OrdersService {
     let calculatedTotal = order.totalBill;
 
     if (updateDto.items && updateDto.items.length > 0) {
+      const requestedMenuItemIds = Array.from(
+        new Set(
+          updateDto.items
+            .map((item) => item.menuItemId?.trim())
+            .filter((id): id is string => Boolean(id)),
+        ),
+      );
+
+      if (requestedMenuItemIds.length > 0) {
+        const validMenuItems = await this.prisma.menuItem.findMany({
+          where: {
+            id: { in: requestedMenuItemIds },
+            businessId: order.businessId,
+            isActive: true,
+          },
+          select: { id: true },
+        });
+
+        const validIds = new Set(validMenuItems.map((m) => m.id));
+
+        for (const item of updateDto.items) {
+          const mId = item.menuItemId?.trim();
+          if (mId && !validIds.has(mId)) {
+            throw new BadRequestException(
+              `Menu item with ID "${mId}" does not exist in this restaurant. Please provide a valid menuItemId from GET /menu-items, or omit menuItemId for custom items.`,
+            );
+          }
+        }
+      }
+
       await this.prisma.orderItem.deleteMany({
         where: { orderId: id },
       });
@@ -414,14 +487,16 @@ export class OrdersService {
         const total = Number((qty * price).toFixed(2));
         calculatedTotal += total;
 
+        const menuItemId = item.menuItemId?.trim() || null;
+
         return {
           orderId: id,
-          menuItemId: item.menuItemId || null,
+          menuItemId,
           name: item.name,
           quantity: qty,
           unitPrice: price,
           totalPrice: total,
-          notes: item.notes || null,
+          notes: item.notes?.trim() || null,
         };
       });
 
