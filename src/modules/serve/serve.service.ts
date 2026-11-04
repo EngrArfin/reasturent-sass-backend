@@ -132,10 +132,44 @@ export class ServeService {
       table = await this.prisma.restaurantTable.findFirst({
         where: { id: dto.tableId, ...(businessId ? { businessId } : {}) },
       });
+      if (!table) {
+        throw new NotFoundException(`Table with ID "${dto.tableId}" not found in this restaurant`);
+      }
     } else if (dto.tableNumber) {
       table = await this.prisma.restaurantTable.findFirst({
         where: { tableNumber: dto.tableNumber, ...(businessId ? { businessId } : {}) },
       });
+    }
+
+    // Validate menuItemIds if provided
+    const requestedMenuItemIds = Array.from(
+      new Set(
+        dto.items
+          .map((item) => item.menuItemId?.trim())
+          .filter((id): id is string => Boolean(id)),
+      ),
+    );
+
+    if (requestedMenuItemIds.length > 0) {
+      const validMenuItems = await this.prisma.menuItem.findMany({
+        where: {
+          id: { in: requestedMenuItemIds },
+          ...(businessId ? { businessId } : {}),
+          isActive: true,
+        },
+        select: { id: true },
+      });
+
+      const validIds = new Set(validMenuItems.map((m) => m.id));
+
+      for (const item of dto.items) {
+        const mId = item.menuItemId?.trim();
+        if (mId && !validIds.has(mId)) {
+          throw new BadRequestException(
+            `Menu item with ID "${mId}" does not exist in this restaurant. Please provide a valid menuItemId from GET /menu-items, or omit menuItemId for custom items.`,
+          );
+        }
+      }
     }
 
     // Generate Ticket / Order Number (e.g. 8-character hex ticket ID like 941862f1)
@@ -149,20 +183,22 @@ export class ServeService {
       const total = Number((qty * price).toFixed(2));
       calculatedTotal += total;
 
+      const menuItemId = item.menuItemId?.trim() || null;
+
       return {
-        menuItemId: item.menuItemId || null,
+        menuItemId,
         name: item.name,
         quantity: qty,
         unitPrice: price,
         totalPrice: total,
-        notes: item.notes || null,
+        notes: item.notes?.trim() || null,
       };
     });
 
     const order = await this.prisma.order.create({
       data: {
         orderNumber,
-        tableId: table ? table.id : dto.tableId || null,
+        tableId: table ? table.id : null,
         tableNumber: dto.tableNumber || (table ? table.tableNumber : '1'),
         status: 'PENDING',
         totalBill: Number(calculatedTotal.toFixed(2)),

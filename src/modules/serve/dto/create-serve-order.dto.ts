@@ -12,8 +12,7 @@ import { Type } from 'class-transformer';
 
 export class CreateServeOrderItemDto {
   @ApiPropertyOptional({
-    description: 'Menu item ID if selected from menu',
-    example: 'm1',
+    description: 'Menu item ID if selected from menu (optional)',
   })
   @IsOptional()
   @IsString()
